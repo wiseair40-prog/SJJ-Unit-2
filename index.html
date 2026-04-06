@@ -4,107 +4,125 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SJJ U2 — Historical Data Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
-body{background:#f5f7fa;color:#1a1a2e;padding:20px;min-height:100vh}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.title{font-size:22px;font-weight:700;color:#1a1a2e}
-.subtitle{font-size:12px;color:#666;margin-top:4px}
-.header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.fix-banner{background:#fff7ed;border:2px solid #f97316;border-radius:12px;padding:16px 20px;margin-bottom:16px}
-.fix-banner h3{color:#c2410c;font-size:14px;margin-bottom:10px}
-.fix-banner ol{padding-left:20px;font-size:13px;color:#7c2d12;line-height:2.4}
-.btn-retry{background:#f97316;color:#fff;border:none;border-radius:8px;padding:9px 22px;font-size:13px;font-weight:700;cursor:pointer;margin-top:12px}
-.debug-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:11px;color:#166534;display:none}
-.debug-box pre{white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto}
-.section-label{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin:14px 0 7px}
-.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.card{background:#fff;border-radius:12px;padding:14px 16px;flex:1;min-width:140px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e8eaf0;border-top:3px solid #7c3aed}
-.card .lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px;line-height:1.5}
-.card .val{font-size:17px;font-weight:700;color:#1a1a2e;margin:5px 0 2px}
-.card .rng{font-size:10px;color:#bbb}
-.card .cnt{font-size:9px;color:#c084fc;margin-top:2px}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
+  --accent:#58a6ff;--accent2:#3fb950;--accent3:#f78166;--accent4:#d2a8ff;
+  --accent5:#ffa657;--text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;
+  --warn:#f0883e;--err:#f85149;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;min-height:100vh}
+.top-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}
+.top-bar-left h1{font-size:16px;font-weight:700;letter-spacing:-.3px;font-family:'IBM Plex Mono',monospace;color:var(--accent)}
+.top-bar-left p{font-size:11px;color:var(--muted);margin-top:2px}
+.top-bar-right{display:flex;gap:8px;align-items:center}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);animation:pulse 2s infinite}
+.status-dot.ok{background:var(--accent2);animation:none}
+.status-dot.err{background:var(--err);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-text{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#000}
+.btn-accent:hover{opacity:.85;color:#000}
+.main{padding:16px 20px;max-width:1600px;margin:0 auto}
+.err-banner{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:16px 20px;margin-bottom:16px;display:none}
+.err-banner h3{color:var(--err);font-size:13px;margin-bottom:8px}
+.err-banner ol{padding-left:20px;color:var(--muted);line-height:2.2;font-size:12px}
+.warn-banner{background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.3);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--warn);display:none}
+.debug-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;display:none}
+.debug-panel pre{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:250px;overflow-y:auto;line-height:1.7}
+.section-hdr{font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1.2px;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.section-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;border-top:2px solid var(--accent)}
+.kpi .k-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.kpi .k-val{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text);line-height:1}
+.kpi .k-unit{font-size:10px;color:var(--muted);margin-left:3px}
+.kpi .k-range{font-size:9px;color:var(--muted2);margin-top:4px}
+.kpi .k-cnt{font-size:9px;color:var(--accent4);margin-top:2px}
+.filter-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:10px}
+.filter-row:last-child{margin-bottom:0}
+.fg label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px}
+.fg input,.fg select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;outline:none;font-family:'IBM Plex Sans',sans-serif}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg select option{background:var(--surface2)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.active-label{font-size:10px;color:var(--accent5);margin-top:8px;font-family:'IBM Plex Mono',monospace}
 .stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.stat-chip{background:#fff;border:1px solid #e8eaf0;border-radius:20px;padding:5px 14px;font-size:11px;color:#666;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.stat-chip b{color:#1a1a2e}
-.fbox{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e8eaf0}
-.frow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
-.frow:last-child{margin-bottom:0}
-.fg label{font-size:11px;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-.fg input,.fg select{background:#f5f7fa;border:1px solid #dde1ec;color:#1a1a2e;padding:7px 12px;border-radius:8px;font-size:13px;outline:none}
-.fg input:focus,.fg select:focus{border-color:#7c3aed;background:#fff}
-.divider{width:100%;height:1px;background:#eef0f6;margin:12px 0}
-.btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:opacity .2s}
-.btn:hover{opacity:.85}
-.btn-primary{background:#7c3aed;color:#fff}
-.btn-outline{background:transparent;border:1px solid #ccc;color:#666}
-.btn-success{background:#22c55e;color:#fff}
-.btn-refresh{background:#f59e0b;color:#fff;font-size:11px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer}
-.btn-debug{background:#6b7280;color:#fff;font-size:11px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer}
-.afl{font-size:11px;color:#f59e0b;margin-top:10px}
-.params{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
-.pbtn{padding:5px 14px;border-radius:20px;border:2px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.cbox{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e8eaf0}
-.cbox.full{grid-column:1/-1}
-.ctitle{font-size:13px;font-weight:600;margin-bottom:12px;color:#444;display:flex;align-items:center;gap:6px}
-.ctitle-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.no-data-msg{text-align:center;padding:40px 20px;color:#bbb;font-size:12px}
-canvas{max-height:230px}
-.tbox{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e8eaf0}
-.thead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.ttitle{font-size:13px;font-weight:600;color:#444}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted)}
+.stat-chip b{color:var(--text)}
+.toggle-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tbtn{padding:4px 12px;border-radius:20px;border:1.5px solid;font-size:10px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .15s;background:transparent}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
+.chart-card.span2{grid-column:1/-1}
+.chart-hdr{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace}
+.chart-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+canvas{max-height:220px}
+.no-data{text-align:center;padding:40px;color:var(--muted2);font-size:11px}
+.tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
+.tbl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.tbl-title{font-size:12px;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace}
 .tscroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:11px;min-width:1400px}
-th{background:#f5f3ff;color:#5b21b6;padding:9px 10px;text-align:left;border-bottom:2px solid #ddd6fe;white-space:nowrap;font-weight:600;cursor:pointer;user-select:none}
-th:hover{color:#7c3aed}
-th.sort-asc::after{content:' ↑';color:#7c3aed}
-th.sort-desc::after{content:' ↓';color:#7c3aed}
-td{padding:7px 10px;border-bottom:1px solid #f0f2f8;color:#333;white-space:nowrap}
-tr:hover td{background:#f5f3ff}
-.loading{text-align:center;padding:50px;color:#999;font-size:14px}
-.progress-bar{background:#ede9fe;border-radius:8px;height:6px;margin:8px 0 0;overflow:hidden}
-.progress-fill{background:#7c3aed;height:100%;border-radius:8px;transition:width .3s}
-.err-box{background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:20px;color:#dc2626;font-size:13px;line-height:2}
-.pagination{display:flex;gap:5px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.pg-btn{padding:4px 11px;border-radius:6px;border:1px solid #dde1ec;background:#fff;color:#666;font-size:11px;cursor:pointer}
-.pg-btn:hover{border-color:#7c3aed;color:#7c3aed}
-.pg-btn.active{background:#7c3aed;color:#fff;border-color:#7c3aed}
-.pg-info{font-size:11px;color:#888;margin-left:6px}
-@media(max-width:768px){.charts{grid-template-columns:1fr}.cbox.full{grid-column:1}body{padding:12px}}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:1400px;font-family:'IBM Plex Mono',monospace}
+th{background:var(--surface2);color:var(--accent4);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;cursor:pointer;user-select:none;letter-spacing:.3px}
+th:hover{color:var(--accent)}
+th.sort-asc::after{content:' ↑';color:var(--accent)}
+th.sort-desc::after{content:' ↓';color:var(--accent)}
+td{padding:6px 10px;border-bottom:1px solid rgba(48,54,61,.5);color:var(--muted);white-space:nowrap}
+td:first-child{color:var(--text)}
+tr:hover td{background:var(--surface2)}
+.pagination{display:flex;gap:4px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.pg-btn{padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.pg-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pg-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.pg-info{font-size:10px;color:var(--muted2);margin-left:5px;font-family:'IBM Plex Mono',monospace}
+.loading-overlay{text-align:center;padding:60px 20px;color:var(--muted)}
+.spinner{display:inline-block;width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}.chart-card.span2{grid-column:1}}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div class="title">🏭 SJJ Unit 2 — Historical Data Explorer</div>
-    <div class="subtitle">Sheet: 2025 · Flow · Power · Pressure · Dew Point · Machine Zones</div>
+<div class="top-bar">
+  <div class="top-bar-left">
+    <h1>⚙ SJJ UNIT 2 — DATA EXPLORER</h1>
+    <p>Sheet: 2025 · Flow · Power · Pressure · Dew Point · Machine Zones</p>
   </div>
-  <div class="header-right">
-    <button class="btn-debug" onclick="toggleDebug()">🔍 Debug</button>
-    <button class="btn-refresh" onclick="doFetch()">↻ Refresh</button>
-    <span id="sync" style="font-size:12px;font-weight:600;color:#f59e0b">● Connecting...</span>
+  <div class="top-bar-right">
+    <button class="btn" onclick="toggleDebug()">🔍 Debug</button>
+    <button class="btn" onclick="doFetch()">↻ Refresh</button>
+    <button class="btn btn-accent" onclick="doExport()">⬇ CSV</button>
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-text" id="statusText">connecting...</span>
   </div>
 </div>
 
-<div class="debug-box" id="debugBox">
-  <strong>Column Mapping Debug:</strong>
+<div class="main">
+
+<div class="debug-panel" id="debugPanel">
+  <strong style="color:var(--accent);font-size:11px;font-family:'IBM Plex Mono',monospace">COLUMN MAPPING + PARSE LOG</strong>
   <pre id="debugPre">—</pre>
 </div>
 
-<div class="fix-banner" id="fixBanner" style="display:none">
-  <h3>⚠️ Could not load data from Google Sheets</h3>
+<div class="err-banner" id="errBanner">
+  <h3>⚠ Cannot Load Data from Google Sheets</h3>
   <ol>
     <li>Open your Google Sheet: <strong>SJJ Unit 2</strong></li>
-    <li>Click <strong>Share</strong> (top-right)</li>
-    <li>Click <strong>"Change to anyone with the link"</strong></li>
-    <li>Set role to <strong>Viewer</strong> and click <strong>Done</strong></li>
-    <li>Come back here and click <strong>Retry</strong></li>
+    <li>Click <strong>Share</strong> (top-right corner)</li>
+    <li>Change access to <strong>"Anyone with the link → Viewer"</strong></li>
+    <li>Click <strong>Done</strong>, then click <strong>Retry</strong> below</li>
   </ol>
-  <button class="btn-retry" onclick="doFetch()">🔄 Retry</button>
+  <button class="btn btn-accent" style="margin-top:12px" onclick="doFetch()">🔄 Retry</button>
 </div>
+
+<div class="warn-banner" id="warnBanner"></div>
 
 <div class="stats-row" id="statsRow" style="display:none">
   <div class="stat-chip">Total Records: <b id="statTotal">0</b></div>
@@ -113,24 +131,15 @@ tr:hover td{background:#f5f3ff}
   <div class="stat-chip">Last Updated: <b id="statUpdated">—</b></div>
 </div>
 
-<div class="section-label">📈 Key Averages</div>
-<div class="cards">
-  <div class="card"><div class="lbl">Total Flow</div><div class="val" id="cv_flow">—</div><div class="rng" id="cr_flow"></div><div class="cnt" id="cc_flow"></div></div>
-  <div class="card"><div class="lbl">Power</div><div class="val" id="cv_Power">—</div><div class="rng" id="cr_Power"></div><div class="cnt" id="cc_Power"></div></div>
-  <div class="card"><div class="lbl">Savio Flow</div><div class="val" id="cv_Savio">—</div><div class="rng" id="cr_Savio"></div><div class="cnt" id="cc_Savio"></div></div>
-  <div class="card"><div class="lbl">Murata Flow</div><div class="val" id="cv_Murata">—</div><div class="rng" id="cr_Murata"></div><div class="cnt" id="cc_Murata"></div></div>
-  <div class="card"><div class="lbl">Comp. Outlet Pres.</div><div class="val" id="cv_Comp_Outlet_Pres">—</div><div class="rng" id="cr_Comp_Outlet_Pres"></div><div class="cnt" id="cc_Comp_Outlet_Pres"></div></div>
-  <div class="card"><div class="lbl">After Dryer Pres.</div><div class="val" id="cv_After_Dryer_Pres">—</div><div class="rng" id="cr_After_Dryer_Pres"></div><div class="cnt" id="cc_After_Dryer_Pres"></div></div>
-  <div class="card"><div class="lbl">Dew Point</div><div class="val" id="cv_Dew_Point">—</div><div class="rng" id="cr_Dew_Point"></div><div class="cnt" id="cc_Dew_Point"></div></div>
-  <div class="card"><div class="lbl">Oil Sep. Outlet Pres.</div><div class="val" id="cv_Oil_Sep_Outlet_Pres">—</div><div class="rng" id="cr_Oil_Sep_Outlet_Pres"></div><div class="cnt" id="cc_Oil_Sep_Outlet_Pres"></div></div>
-</div>
+<div class="section-hdr">Key Averages</div>
+<div class="kpis" id="kpis"></div>
 
-<div class="fbox">
-  <div class="frow">
-    <div class="fg"><label>📅 Date From</label><input type="date" id="from"></div>
-    <div class="fg"><label>📅 Date To</label><input type="date" id="to"></div>
+<div class="filter-box">
+  <div class="filter-row">
+    <div class="fg"><label>Date From</label><input type="date" id="from"></div>
+    <div class="fg"><label>Date To</label><input type="date" id="to"></div>
     <div class="fg">
-      <label>⚡ Quick Range</label>
+      <label>Quick Range</label>
       <select id="qr" onchange="applyQuickRange()">
         <option value="">Custom</option>
         <option value="7">Last 7 Days</option>
@@ -140,7 +149,7 @@ tr:hover td{background:#f5f3ff}
       </select>
     </div>
     <div class="fg">
-      <label>📊 Aggregation</label>
+      <label>Aggregation</label>
       <select id="agg">
         <option value="raw">Raw Data</option>
         <option value="hourly">Hourly Avg</option>
@@ -150,17 +159,21 @@ tr:hover td{background:#f5f3ff}
       </select>
     </div>
     <div class="fg">
-      <label>📈 Chart Type</label>
+      <label>Chart Type</label>
       <select id="chartType" onchange="applyFilters()">
         <option value="line">Line</option>
         <option value="bar">Bar</option>
       </select>
     </div>
+    <div class="fg" style="display:flex;gap:8px;align-items:flex-end">
+      <button class="btn btn-accent" onclick="applyFilters()">▶ Apply</button>
+      <button class="btn" onclick="doReset()">↺ Reset</button>
+    </div>
   </div>
   <div class="divider"></div>
-  <div class="frow">
+  <div class="filter-row">
     <div class="fg">
-      <label>🔍 Filter Column</label>
+      <label>Filter Column</label>
       <select id="fcol">
         <option value="">None</option>
         <option value="flow">Total Flow</option>
@@ -185,620 +198,869 @@ tr:hover td{background:#f5f3ff}
     <div class="fg">
       <label>Condition</label>
       <select id="fop">
-        <option value="gt">greater than</option>
-        <option value="lt">less than</option>
-        <option value="gte">greater or equal</option>
-        <option value="lte">less or equal</option>
-        <option value="eq">equal to</option>
+        <option value="gt">&gt; greater than</option>
+        <option value="lt">&lt; less than</option>
+        <option value="gte">≥ greater or equal</option>
+        <option value="lte">≤ less or equal</option>
+        <option value="eq">= equal to</option>
       </select>
     </div>
     <div class="fg">
       <label>Value</label>
-      <input type="number" id="fval" placeholder="e.g. 100" step="any" style="width:120px">
-    </div>
-    <div class="fg" style="display:flex;gap:8px;align-items:flex-end">
-      <button class="btn btn-primary" onclick="applyFilters()">▶ Apply</button>
-      <button class="btn btn-outline" onclick="doReset()">↺ Reset</button>
-      <button class="btn btn-success" onclick="doExport()">⬇ CSV</button>
+      <input type="number" id="fval" placeholder="e.g. 100" step="any" style="width:110px">
     </div>
   </div>
-  <div class="afl" id="afl"></div>
+  <div class="active-label" id="afl"></div>
 </div>
 
-<div class="section-label">🔘 Toggle Parameters</div>
-<div class="params" id="params"></div>
+<div class="section-hdr">Toggle Parameters</div>
+<div class="toggle-row" id="toggleRow"></div>
 
-<div class="charts">
-  <div class="cbox full"><div class="ctitle"><span class="ctitle-dot" style="background:#0ea5e9"></span>Flow — Total, Savio, Murata</div><div id="flowWrap"></div></div>
-  <div class="cbox full"><div class="ctitle"><span class="ctitle-dot" style="background:#8b5cf6"></span>Zone Flows — Spg Hall A&amp;B, Prep Hall 1&amp;2</div><div id="zoneWrap"></div></div>
-  <div class="cbox"><div class="ctitle"><span class="ctitle-dot" style="background:#f97316"></span>Pressure — Compressor Outlet &amp; Dryer</div><div id="pressWrap"></div></div>
-  <div class="cbox"><div class="ctitle"><span class="ctitle-dot" style="background:#22d3ee"></span>Dew Point (°C)</div><div id="dewWrap"></div></div>
-  <div class="cbox"><div class="ctitle"><span class="ctitle-dot" style="background:#ef4444"></span>Power (kW)</div><div id="powerWrap"></div></div>
-  <div class="cbox"><div class="ctitle"><span class="ctitle-dot" style="background:#f59e0b"></span>Oil Separator Outlet Pressure (bar)</div><div id="oilWrap"></div></div>
-  <div class="cbox full"><div class="ctitle"><span class="ctitle-dot" style="background:#10b981"></span>Machine Zones — Linkconer 43, Ringframe 43, Linckoner 44 &amp; 45</div><div id="machineWrap"></div></div>
+<div class="charts-grid" id="chartsGrid">
+  <div class="chart-card span2"><div class="chart-hdr"><span class="chart-dot" style="background:#58a6ff"></span>FLOW — Total, Savio, Murata (CFM)</div><div id="flowWrap"><div class="loading-overlay"><div class="spinner"></div><br>Loading...</div></div></div>
+  <div class="chart-card span2"><div class="chart-hdr"><span class="chart-dot" style="background:#d2a8ff"></span>ZONE FLOWS — Spg Hall A&amp;B, Prep Hall 1&amp;2 (CFM)</div><div id="zoneWrap"><div class="loading-overlay">—</div></div></div>
+  <div class="chart-card"><div class="chart-hdr"><span class="chart-dot" style="background:#ffa657"></span>PRESSURE — Comp Outlet, Before/After Dryer (bar)</div><div id="pressWrap"><div class="loading-overlay">—</div></div></div>
+  <div class="chart-card"><div class="chart-hdr"><span class="chart-dot" style="background:#79c0ff"></span>DEW POINT (°C)</div><div id="dewWrap"><div class="loading-overlay">—</div></div></div>
+  <div class="chart-card"><div class="chart-hdr"><span class="chart-dot" style="background:#f85149"></span>POWER (kW)</div><div id="powerWrap"><div class="loading-overlay">—</div></div></div>
+  <div class="chart-card"><div class="chart-hdr"><span class="chart-dot" style="background:#3fb950"></span>OIL SEP. OUTLET PRESSURE (bar)</div><div id="oilWrap"><div class="loading-overlay">—</div></div></div>
+  <div class="chart-card span2"><div class="chart-hdr"><span class="chart-dot" style="background:#56d364"></span>MACHINE ZONES — Linkconer 43, Ringframe 43, Linckoner 44 &amp; 45</div><div id="machineWrap"><div class="loading-overlay">—</div></div></div>
 </div>
 
-<div class="tbox">
-  <div class="thead">
-    <span class="ttitle" id="ttitle">Data Table</span>
+<div class="tbl-box">
+  <div class="tbl-hdr">
+    <span class="tbl-title" id="tblTitle">Data Table</span>
     <div style="display:flex;gap:8px;align-items:center">
-      <span style="font-size:11px;color:#888">Rows per page:</span>
-      <select id="pageSize" onchange="changePage(1)" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #dde1ec;background:#f5f7fa">
-        <option value="100">100</option><option value="250">250</option>
-        <option value="500" selected>500</option><option value="1000">1000</option>
+      <span style="color:var(--muted2);font-size:10px">Rows/page:</span>
+      <select id="pageSize" onchange="changePage(1)" style="font-size:11px;padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+        <option value="100">100</option>
+        <option value="250">250</option>
+        <option value="500" selected>500</option>
+        <option value="1000">1000</option>
       </select>
     </div>
   </div>
-  <div class="tscroll"><div id="table"><div class="loading">⏳ Loading data from Google Sheets...</div></div></div>
+  <div class="tscroll"><div id="tableDiv"><div class="loading-overlay"><div class="spinner"></div><br>Loading data...</div></div></div>
   <div class="pagination" id="pagination"></div>
 </div>
+
+</div><!-- /main -->
 
 <script>
 'use strict';
 
-// ═══════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════
+// ─── CONFIG ───────────────────────────────────────────────
 var SHEET_ID  = '1fhxWeL6xOfgl7DtMWG0-XEEtOwfYQfdMTZMJhPkzoW0';
 var SHEET_GID = '1890584741';
 
+// Column definitions with extensive candidates
 var COL_DEFS = [
-  {key:'flow',               candidates:['flow','total flow'],                                                                  label:'Total Flow',        unit:'CFM',color:'#0ea5e9',group:'flow'},
-  {key:'Power',              candidates:['power'],                                                                              label:'Power',             unit:'kW', color:'#ef4444',group:'power'},
-  {key:'Savio',              candidates:['savio'],                                                                              label:'Savio',             unit:'CFM',color:'#3b82f6',group:'flow'},
-  {key:'Murata',             candidates:['murata'],                                                                             label:'Murata',            unit:'CFM',color:'#6366f1',group:'flow'},
-  {key:'Spg_Hall_A',         candidates:['spg hall a','spghalla','spg_hall_a'],                                                 label:'Spg Hall A',        unit:'CFM',color:'#8b5cf6',group:'zone'},
-  {key:'Spg_Hall_B',         candidates:['spg hall b','spghallb','spg_hall_b'],                                                 label:'Spg Hall B',        unit:'CFM',color:'#a855f7',group:'zone'},
-  {key:'Prep_Hall_1',        candidates:['prep hall 1','prep hall1','prephall1','prep_hall_1'],                                  label:'Prep Hall 1',       unit:'CFM',color:'#c084fc',group:'zone'},
-  {key:'Prep_Hall_2',        candidates:['prep hall 2','prep hall2','prephall2','prep_hall_2'],                                  label:'Prep Hall 2',       unit:'CFM',color:'#d8b4fe',group:'zone'},
-  {key:'Dew_Point',          candidates:['dew point','dewpoint','dew_point'],                                                   label:'Dew Point',         unit:'°C', color:'#22d3ee',group:'dew'},
-  {key:'Comp_Outlet_Pres',   candidates:['compressor outlet pressure','comp outlet pressure','compressor outlet pres'],         label:'Comp Outlet Pres',  unit:'bar',color:'#f97316',group:'pressure'},
-  {key:'Before_Dryer_Pres',  candidates:['before dryer pressure','before dryer pres','before dryer'],                          label:'Before Dryer Pres', unit:'bar',color:'#fb923c',group:'pressure'},
-  {key:'After_Dryer_Pres',   candidates:['after dryer pressure','after dryer pres','after dryer'],                             label:'After Dryer Pres',  unit:'bar',color:'#fbbf24',group:'pressure'},
-  {key:'Oil_Sep_Outlet_Pres',candidates:['oil seperator outlet pressure','oil separator outlet pressure','oil sep outlet pressure','oil seperator outlet'],label:'Oil Sep Outlet',unit:'bar',color:'#f59e0b',group:'oil'},
-  {key:'Linkcone_43',        candidates:['linkconer 43','linkcone 43','linkconer43','linkcone43'],                               label:'Linkconer 43',      unit:'CFM',color:'#10b981',group:'machine'},
-  {key:'Ringframe_43',       candidates:['ringframe 43','ringframe43'],                                                         label:'Ringframe 43',      unit:'CFM',color:'#059669',group:'machine'},
-  {key:'Linkconer_44',       candidates:['linckoner 44','linkconer 44','linckoner44','linkconer44'],                             label:'Linckoner 44',      unit:'CFM',color:'#34d399',group:'machine'},
-  {key:'Linkconer_45',       candidates:['linckoner 45','linkconer 45','linckoner45','linkconer45'],                             label:'Linckoner 45',      unit:'CFM',color:'#6ee7b7',group:'machine'},
+  {key:'flow',               label:'Total Flow',        unit:'CFM', color:'#58a6ff', group:'flow',
+   cands:['flow','total flow','totalflow']},
+  {key:'Power',              label:'Power',             unit:'kW',  color:'#f85149', group:'power',
+   cands:['power','kw','power (kw)']},
+  {key:'Savio',              label:'Savio',             unit:'CFM', color:'#388bfd', group:'flow',
+   cands:['savio','savio flow']},
+  {key:'Murata',             label:'Murata',            unit:'CFM', color:'#7c48ee', group:'flow',
+   cands:['murata','murata flow']},
+  {key:'Spg_Hall_A',         label:'Spg Hall A',        unit:'CFM', color:'#d2a8ff', group:'zone',
+   cands:['spg hall a','spg_hall_a','spghalla','spinning hall a','spg a']},
+  {key:'Spg_Hall_B',         label:'Spg Hall B',        unit:'CFM', color:'#bc8cff', group:'zone',
+   cands:['spg hall b','spg_hall_b','spghallb','spinning hall b','spg b']},
+  {key:'Prep_Hall_1',        label:'Prep Hall 1',       unit:'CFM', color:'#e8b4ff', group:'zone',
+   cands:['prep hall 1','prep hall1','prephall1','prep_hall_1','prep 1']},
+  {key:'Prep_Hall_2',        label:'Prep Hall 2',       unit:'CFM', color:'#f0d0ff', group:'zone',
+   cands:['prep hall 2','prep hall2','prephall2','prep_hall_2','prep 2']},
+  {key:'Dew_Point',          label:'Dew Point',         unit:'°C',  color:'#79c0ff', group:'dew',
+   cands:['dew point','dewpoint','dew_point','dew pt']},
+  {key:'Comp_Outlet_Pres',   label:'Comp Outlet Pres',  unit:'bar', color:'#ffa657', group:'pressure',
+   cands:['compressor outlet pressure','comp outlet pressure','compressor outlet pres','comp outlet pres','compressor outlet','comp outlet']},
+  {key:'Before_Dryer_Pres',  label:'Before Dryer Pres', unit:'bar', color:'#ff8c61', group:'pressure',
+   cands:['before dryer pressure','before dryer pres','before dryer','before dryer press']},
+  {key:'After_Dryer_Pres',   label:'After Dryer Pres',  unit:'bar', color:'#ffd700', group:'pressure',
+   cands:['after dryer pressure','after dryer pres','after dryer','after dryer press']},
+  {key:'Oil_Sep_Outlet_Pres',label:'Oil Sep Outlet',    unit:'bar', color:'#3fb950', group:'oil',
+   cands:['oil seperator outlet pressure','oil separator outlet pressure','oil sep outlet pressure',
+          'oil seperator outlet','oil separator outlet','oil sep outlet','oil seperator outlet pres','oil separator outlet pres']},
+  {key:'Linkcone_43',        label:'Linkconer 43',      unit:'CFM', color:'#56d364', group:'machine',
+   cands:['linkconer 43','linkcone 43','linkconer43','linkcone43','linkconer-43']},
+  {key:'Ringframe_43',       label:'Ringframe 43',      unit:'CFM', color:'#26a641', group:'machine',
+   cands:['ringframe 43','ringframe43','ring frame 43','ring frame43']},
+  {key:'Linkconer_44',       label:'Linckoner 44',      unit:'CFM', color:'#1a7f37', group:'machine',
+   cands:['linckoner 44','linkconer 44','linckoner44','linkconer44','linkconer-44','linckoner-44']},
+  {key:'Linkconer_45',       label:'Linckoner 45',      unit:'CFM', color:'#0f5a26', group:'machine',
+   cands:['linckoner 45','linkconer 45','linckoner45','linkconer45','linkconer-45','linckoner-45']},
 ];
+var CARD_KEYS = ['flow','Power','Savio','Murata','Comp_Outlet_Pres','After_Dryer_Pres','Dew_Point','Oil_Sep_Outlet_Pres'];
 
-var CARD_KEYS=['flow','Power','Savio','Murata','Comp_Outlet_Pres','After_Dryer_Pres','Dew_Point','Oil_Sep_Outlet_Pres'];
+// ─── STATE ────────────────────────────────────────────────
+var activeParams = {};
+COL_DEFS.forEach(function(c){ activeParams[c.key] = true; });
+var allData = [], filteredData = [];
+var charts = {};
+var sortKey = 'Timestamp', sortDir = -1, currentPage = 1;
+var debugLines = [];
 
-// ═══════════════════════════════════
-// STATE
-// ═══════════════════════════════════
-var activeParams={};
-COL_DEFS.forEach(function(c){activeParams[c.key]=true;});
-var allData=[],filteredData=[];
-var charts={};
-var sortKey='Timestamp',sortDir=-1,currentPage=1;
-var debugLog=[];
-
-function toggleDebug(){var b=document.getElementById('debugBox');b.style.display=b.style.display==='none'?'block':'none';}
-function log(m){debugLog.push(m);}
-function flushLog(){document.getElementById('debugPre').textContent=debugLog.join('\n');}
-
-// ═══════════════════════════════════
-// TIMESTAMP PARSER
-// ═══════════════════════════════════
-function parseTS(s){
-  if(!s) return null;
-  s=String(s).trim();
-  // M/D/YY HH:MM  (your format: 4/6/25 11:24)
-  var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if(m){var y=+m[3];if(y<100)y+=2000;return new Date(y,+m[1]-1,+m[2],+m[4],+m[5],+(m[6]||0));}
-  var m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if(m2) return new Date(+m2[3],+m2[2]-1,+m2[1],+m2[4],+m2[5],+(m2[6]||0));
-  var m3=s.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-  if(m3) return new Date(+m3[1],+m3[2]-1,+m3[3],+m3[4],+m3[5]);
-  var d=new Date(s);return isNaN(d)?null:d;
+function log(m){ debugLines.push(m); }
+function flushLog(){ document.getElementById('debugPre').textContent = debugLines.join('\n'); }
+function toggleDebug(){
+  var p = document.getElementById('debugPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
 }
 
-// ═══════════════════════════════════
-// CSV LINE SPLITTER
-// ═══════════════════════════════════
-function splitLine(line){
-  var res=[],cur='',inQ=false;
-  for(var i=0;i<line.length;i++){
-    var c=line[i];
-    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
-    else if(c===','&&!inQ){res.push(cur);cur='';}
-    else cur+=c;
-  }
-  res.push(cur);
-  return res.map(function(v){return v.trim();});
-}
-
-// ═══════════════════════════════════
-// COLUMN MAPPER
-// ═══════════════════════════════════
-function buildColMap(headers){
-  var lc=headers.map(function(h){return h.toLowerCase().trim();});
-  var colMap={},unmapped=[];
-  log('=== HEADERS ('+headers.length+') ===');
-  headers.forEach(function(h,i){log('  ['+i+'] "'+h+'"');});
-
-  COL_DEFS.forEach(function(cd){
-    for(var ci=0;ci<cd.candidates.length;ci++){
-      var cand=cd.candidates[ci].toLowerCase();
-      for(var hi=0;hi<lc.length;hi++){
-        if(lc[hi]===cand){colMap[cd.key]=hi;log('MAP: '+cd.key+' -> ['+hi+'] "'+headers[hi]+'"');return;}
+// ─── CSV PARSING ─────────────────────────────────────────
+// Robust CSV line parser that handles quoted fields with commas
+function parseCSVLine(line) {
+  var fields = [], field = '', inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && i + 1 < line.length && line[i+1] === '"') {
+        field += '"'; i++;
+      } else {
+        inQuotes = !inQuotes;
       }
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(field.trim());
+      field = '';
+    } else {
+      field += ch;
     }
-    unmapped.push(cd.key);
-  });
+  }
+  fields.push(field.trim());
+  return fields;
+}
 
-  // Fuzzy pass
-  unmapped.slice().forEach(function(key){
-    var cd=COL_DEFS.filter(function(c){return c.key===key;})[0];
-    outer:for(var hi=0;hi<lc.length;hi++){
-      for(var ci=0;ci<cd.candidates.length;ci++){
-        var words=cd.candidates[ci].toLowerCase().split(' ');
-        if(words.every(function(w){return lc[hi].indexOf(w)!==-1;})){
-          colMap[key]=hi;log('FUZZY: '+key+' -> ['+hi+'] "'+headers[hi]+'"');
-          unmapped.splice(unmapped.indexOf(key),1);break outer;
+// Flexible timestamp parser — handles M/D/YY HH:MM, D/M/YYYY, ISO, etc.
+function parseTimestamp(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  if (!s) return null;
+  
+  // Format: M/D/YY HH:MM or M/D/YYYY HH:MM (your actual format)
+  var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    var y = parseInt(m[3], 10);
+    if (y < 100) y += 2000;
+    return new Date(y, parseInt(m[1],10)-1, parseInt(m[2],10),
+                    parseInt(m[4],10), parseInt(m[5],10), parseInt(m[6]||0,10));
+  }
+  
+  // Format: YYYY-MM-DD HH:MM or ISO
+  var m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3], +m2[4], +m2[5]);
+  
+  // Format: DD/MM/YYYY HH:MM
+  var m3 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+  if (m3) return new Date(+m3[3], +m3[2]-1, +m3[1], +m3[4], +m3[5]);
+  
+  var d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+// Build column index mapping from header row
+function buildColumnMap(headers) {
+  var normalized = headers.map(function(h){ return h.toLowerCase().replace(/[_\-]+/g,' ').trim(); });
+  var map = {};
+  var unmapped = [];
+
+  log('=== HEADERS ('+headers.length+' cols) ===');
+  headers.forEach(function(h, i){ log('  ['+i+'] "'+h+'" → normalized: "'+normalized[i]+'"'); });
+
+  COL_DEFS.forEach(function(cd) {
+    var found = false;
+    // Exact match first
+    for (var ci = 0; ci < cd.cands.length && !found; ci++) {
+      var cand = cd.cands[ci].toLowerCase();
+      for (var hi = 0; hi < normalized.length && !found; hi++) {
+        if (normalized[hi] === cand) {
+          map[cd.key] = hi;
+          log('EXACT: '+cd.key+' → ['+hi+'] "'+headers[hi]+'"');
+          found = true;
         }
       }
     }
+    // Contains match
+    if (!found) {
+      for (var ci = 0; ci < cd.cands.length && !found; ci++) {
+        var cand = cd.cands[ci].toLowerCase();
+        for (var hi = 0; hi < normalized.length && !found; hi++) {
+          if (normalized[hi].indexOf(cand) !== -1 || cand.indexOf(normalized[hi]) !== -1) {
+            map[cd.key] = hi;
+            log('CONTAINS: '+cd.key+' → ['+hi+'] "'+headers[hi]+'"');
+            found = true;
+          }
+        }
+      }
+    }
+    // Word overlap
+    if (!found) {
+      for (var hi = 0; hi < normalized.length && !found; hi++) {
+        var hWords = normalized[hi].split(/\s+/);
+        for (var ci = 0; ci < cd.cands.length && !found; ci++) {
+          var cWords = cd.cands[ci].toLowerCase().split(/\s+/);
+          var overlap = cWords.filter(function(w){ return hWords.indexOf(w) !== -1; });
+          if (overlap.length >= Math.min(2, cWords.length)) {
+            map[cd.key] = hi;
+            log('FUZZY: '+cd.key+' → ['+hi+'] "'+headers[hi]+'" (words: '+overlap.join(',')+')');
+            found = true;
+          }
+        }
+      }
+    }
+    if (!found) unmapped.push(cd.key);
   });
-  if(unmapped.length) log('UNMAPPED: '+unmapped.join(', '));
-  return colMap;
+
+  if (unmapped.length) log('UNMAPPED KEYS: ' + unmapped.join(', '));
+  log('=== MAP COMPLETE ===');
+  return map;
 }
 
-// ═══════════════════════════════════
-// CSV PARSER
-// ═══════════════════════════════════
-function parseCSV(csv){
-  debugLog=[];
-  var lines=csv.replace(/\r/g,'').split('\n').filter(function(l){return l.trim();});
-  log('Lines: '+lines.length);
-  if(lines.length<2){log('ERROR: no data');return[];}
+function parseNum(v) {
+  if (v === null || v === undefined) return null;
+  var s = String(v).trim().replace(/,/g, '');
+  if (s === '' || s === '-' || s === 'null' || s === 'undefined' || s === '#N/A') return null;
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
 
-  var headers=splitLine(lines[0]);
-  log('Header[0..200]: '+lines[0].substring(0,200));
-
-  var tsIdx=0;
-  var lch=headers.map(function(h){return h.toLowerCase();});
-  for(var i=0;i<lch.length;i++){if(lch[i]==='timestamp'||lch[i]==='date'||lch[i]==='time'){tsIdx=i;break;}}
-  log('tsIdx='+tsIdx);
-
-  var colMap=buildColMap(headers);
-
-  // Find first row that has data beyond col 5
-  for(var si=1;si<Math.min(lines.length,10000);si++){
-    var sc=splitLine(lines[si]);
-    var hasExtra=COL_DEFS.slice(5).some(function(cd){
-      var idx=colMap[cd.key];
-      return idx!==undefined&&sc[idx]&&sc[idx].trim()&&sc[idx].trim()!=='';
-    });
-    if(hasExtra){log('First row with extra cols (row '+si+'): '+sc.slice(0,14).join(' | '));break;}
+// ─── MAIN PARSE ──────────────────────────────────────────
+function parseCSV(csvText) {
+  debugLines = [];
+  var raw = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  var lines = raw.split('\n');
+  
+  // Remove empty lines
+  var nonEmpty = lines.filter(function(l){ return l.trim().length > 0; });
+  log('Total lines: '+lines.length+', non-empty: '+nonEmpty.length);
+  
+  if (nonEmpty.length < 2) {
+    log('ERROR: Not enough lines to parse');
+    flushLog(); return [];
   }
-
-  var rows=[],skipped=0;
-  for(var i=1;i<lines.length;i++){
-    var cells=splitLine(lines[i]);
-    var tsStr=(cells[tsIdx]||'').trim();
-    if(!tsStr){skipped++;continue;}
-    var ts=parseTS(tsStr);
-    if(!ts||isNaN(ts)){skipped++;continue;}
-    var obj={_ts:ts};
-    COL_DEFS.forEach(function(cd){
-      var idx=colMap[cd.key];
-      if(idx===undefined||idx>=cells.length){obj[cd.key]=null;return;}
-      var raw=(cells[idx]||'').trim();
-      // Strip any residual surrounding quotes
-      if(raw.charAt(0)==='"') raw=raw.replace(/^"|"$/g,'').trim();
-      var n=parseFloat(raw);
-      obj[cd.key]=(raw===''||isNaN(n))?null:n;
+  
+  // Header detection — skip any lines that don't look like headers
+  var headerIdx = 0;
+  var headers;
+  for (var i = 0; i < Math.min(5, nonEmpty.length); i++) {
+    var cols = parseCSVLine(nonEmpty[i]);
+    var lc0 = (cols[0]||'').toLowerCase().trim();
+    if (lc0 === 'timestamp' || lc0 === 'date' || lc0 === 'time' || lc0 === 'datetime') {
+      headerIdx = i;
+      headers = cols;
+      break;
+    }
+    // Try partial match
+    if (lc0.indexOf('time') !== -1 || lc0.indexOf('date') !== -1) {
+      headerIdx = i;
+      headers = cols;
+      break;
+    }
+  }
+  if (!headers) {
+    headers = parseCSVLine(nonEmpty[0]);
+    headerIdx = 0;
+  }
+  log('Header row index: '+headerIdx);
+  log('First header cell: "'+headers[0]+'"');
+  
+  var colMap = buildColumnMap(headers);
+  
+  // Find timestamp column (col 0 usually)
+  var tsCol = 0;
+  var lch = headers.map(function(h){ return h.toLowerCase().trim(); });
+  for (var i = 0; i < lch.length; i++) {
+    if (lch[i] === 'timestamp' || lch[i] === 'date' || lch[i] === 'time' || lch[i] === 'datetime') {
+      tsCol = i; break;
+    }
+  }
+  log('Timestamp column: '+tsCol+' ("'+headers[tsCol]+'")');
+  
+  // Parse data rows
+  var rows = [], skipped = 0, nullCounts = {};
+  COL_DEFS.forEach(function(cd){ nullCounts[cd.key] = 0; });
+  
+  for (var ri = headerIdx + 1; ri < nonEmpty.length; ri++) {
+    var cells = parseCSVLine(nonEmpty[ri]);
+    var tsRaw = (cells[tsCol] || '').trim();
+    if (!tsRaw) { skipped++; continue; }
+    var ts = parseTimestamp(tsRaw);
+    if (!ts || isNaN(ts.getTime())) { skipped++; continue; }
+    
+    var obj = { _ts: ts };
+    COL_DEFS.forEach(function(cd) {
+      var idx = colMap[cd.key];
+      if (idx === undefined || idx >= cells.length) {
+        obj[cd.key] = null;
+        nullCounts[cd.key]++;
+        return;
+      }
+      var raw = cells[idx] || '';
+      // Remove surrounding quotes
+      raw = raw.replace(/^["']|["']$/g, '').trim();
+      var n = parseNum(raw);
+      obj[cd.key] = n;
+      if (n === null) nullCounts[cd.key]++;
     });
     rows.push(obj);
   }
-  log('Parsed='+rows.length+' skipped='+skipped);
-  if(rows.length){
-    var last=rows[rows.length-1];
-    log('Last row: '+fmtTS(last._ts)+
-      ' flow='+last.flow+' Savio='+last.Savio+
-      ' Comp='+last.Comp_Outlet_Pres+' Dew='+last.Dew_Point+
-      ' AfterDryer='+last.After_Dryer_Pres+' Oil='+last.Oil_Sep_Outlet_Pres);
+  
+  log('Parsed: '+rows.length+' rows, skipped: '+skipped);
+  log('=== NULL COUNTS ===');
+  COL_DEFS.forEach(function(cd){
+    var total = rows.length;
+    var nuls = nullCounts[cd.key];
+    var pct = total > 0 ? ((total-nuls)/total*100).toFixed(1) : '0';
+    log('  '+cd.key+': '+nuls+' nulls ('+pct+'% have data)');
+  });
+  
+  if (rows.length > 0) {
+    log('=== SAMPLE ROWS ===');
+    [0, Math.floor(rows.length/2), rows.length-1].forEach(function(idx) {
+      var r = rows[idx];
+      if (!r) return;
+      var parts = [fmtTS(r._ts)];
+      COL_DEFS.slice(0,6).forEach(function(cd){ parts.push(cd.key+'='+r[cd.key]); });
+      log('  Row['+idx+']: '+parts.join(' | '));
+    });
   }
+  
   flushLog();
   return rows;
 }
 
-// ═══════════════════════════════════
-// FETCH
-// ═══════════════════════════════════
-function doFetch(){
-  var syncEl=document.getElementById('sync');
-  syncEl.textContent='● Fetching...';syncEl.style.color='#f59e0b';
-  document.getElementById('fixBanner').style.display='none';
-  document.getElementById('statsRow').style.display='none';
-  document.getElementById('table').innerHTML=
-    '<div class="loading">⏳ Loading from Google Sheets…<div class="progress-bar"><div class="progress-fill" id="pf" style="width:0%"></div></div></div>';
-  function fill(p){var e=document.getElementById('pf');if(e)e.style.width=p+'%';}
+// ─── FETCH ───────────────────────────────────────────────
+function setStatus(txt, state) {
+  var dot = document.getElementById('statusDot');
+  var stxt = document.getElementById('statusText');
+  stxt.textContent = txt;
+  dot.className = 'status-dot' + (state ? ' '+state : '');
+}
 
-  var gviz='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&gid='+SHEET_GID+'&_='+Date.now();
-  var expo='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/export?format=csv&gid='+SHEET_GID+'&_='+Date.now();
-
-  function isCSV(t){return t&&t.trim().length>0&&t.trim().charAt(0)!=='<';}
-  function tryURL(url){
-    return fetch(url,{cache:'no-store'})
-      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
-      .then(function(t){if(!isCSV(t))throw new Error('NOT_CSV');return t;});
+function doFetch() {
+  setStatus('fetching...', '');
+  document.getElementById('errBanner').style.display = 'none';
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('warnBanner').style.display = 'none';
+  document.getElementById('tableDiv').innerHTML = '<div class="loading-overlay"><div class="spinner"></div><br>Loading from Google Sheets…</div>';
+  
+  var gvizURL = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&gid='+SHEET_GID+'&_='+Date.now();
+  var exportURL = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/export?format=csv&gid='+SHEET_GID+'&_='+Date.now();
+  
+  function looksLikeCSV(t) {
+    if (!t || t.trim().length === 0) return false;
+    var first = t.trim().charAt(0);
+    return first !== '<' && first !== '{';
   }
-
-  fill(15);
-  tryURL(gviz)
-    .catch(function(){fill(45);return tryURL(expo);})
-    .then(function(csv){
-      fill(85);
-      allData=parseCSV(csv).sort(function(a,b){return(a._ts||0)-(b._ts||0);});
-      fill(100);
-      if(!allData.length){
-        document.getElementById('fixBanner').style.display='block';
-        syncEl.textContent='● No data';syncEl.style.color='#ef4444';
-        document.getElementById('table').innerHTML='<div class="err-box">❌ No rows parsed — check Debug panel.<br>Make sure sheet is "Anyone with link → Viewer".</div>';
+  
+  function tryFetch(url) {
+    return fetch(url, { cache: 'no-store' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function(t) {
+        if (!looksLikeCSV(t)) throw new Error('Response is not CSV (got: '+t.substring(0,80)+')');
+        return t;
+      });
+  }
+  
+  setStatus('trying gviz...', '');
+  tryFetch(gvizURL)
+    .catch(function(e1) {
+      log('gviz failed: '+e1.message+', trying export...');
+      setStatus('trying export...', '');
+      return tryFetch(exportURL);
+    })
+    .then(function(csv) {
+      setStatus('parsing...', '');
+      var rows = parseCSV(csv);
+      rows.sort(function(a, b){ return (a._ts||0) - (b._ts||0); });
+      allData = rows;
+      
+      if (!allData.length) {
+        setStatus('no data', 'err');
+        document.getElementById('errBanner').style.display = 'block';
+        document.getElementById('tableDiv').innerHTML = '<div style="text-align:center;padding:40px;color:var(--err)">No rows parsed. Open Debug panel for details.</div>';
         return;
       }
-      // SUCCESS
-      document.getElementById('fixBanner').style.display='none';
-      syncEl.textContent='● Live · '+allData.length.toLocaleString()+' rows';
-      syncEl.style.color='#22c55e';
-      document.getElementById('statUpdated').textContent=new Date().toLocaleTimeString();
-      document.getElementById('statsRow').style.display='flex';
-      buildParamButtons();
+      
+      setStatus('● '+allData.length.toLocaleString()+' rows', 'ok');
+      document.getElementById('statTotal').textContent = allData.length.toLocaleString();
+      document.getElementById('statUpdated').textContent = new Date().toLocaleTimeString();
+      document.getElementById('statsRow').style.display = 'flex';
+      
+      buildToggleButtons();
+      buildKPIs();
       applyFilters();
     })
-    .catch(function(err){
-      document.getElementById('fixBanner').style.display='block';
-      syncEl.textContent='● Error';syncEl.style.color='#ef4444';
-      document.getElementById('table').innerHTML=
-        '<div class="err-box">❌ '+err.message+'<br>Share sheet as "Anyone with link → Viewer" then Retry.</div>';
+    .catch(function(err) {
+      setStatus('error', 'err');
+      document.getElementById('errBanner').style.display = 'block';
+      document.getElementById('tableDiv').innerHTML = '<div style="text-align:center;padding:40px;color:var(--err)">'+err.message+'</div>';
+      log('FETCH ERROR: '+err.message);
+      flushLog();
     });
 }
 
-// ═══════════════════════════════════
-// PARAM BUTTONS
-// ═══════════════════════════════════
-function buildParamButtons(){
-  var div=document.getElementById('params');div.innerHTML='';
-  [{id:'flow',label:'Flow'},{id:'zone',label:'Zone Flows'},{id:'pressure',label:'Pressure'},
-   {id:'oil',label:'Oil Sep.'},{id:'dew',label:'Dew Point'},{id:'power',label:'Power'},{id:'machine',label:'Machine Zones'}]
-  .forEach(function(g){
-    var defs=COL_DEFS.filter(function(c){return c.group===g.id;});
-    if(!defs.length) return;
-    var wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-right:8px';
-    var lbl=document.createElement('span');
-    lbl.style.cssText='font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-right:2px';
-    lbl.textContent=g.label+':';wrap.appendChild(lbl);
-    defs.forEach(function(p){
-      var btn=document.createElement('button');
-      btn.className='pbtn';btn.textContent=p.label;
-      btn.style.cssText='border-color:'+p.color+';background:'+p.color+';color:#fff';
-      btn.onclick=(function(key,color,b){return function(){
-        var on=Object.values(activeParams).filter(Boolean).length;
-        if(activeParams[key]&&on<=1) return;
-        activeParams[key]=!activeParams[key];
-        b.style.background=activeParams[key]?color:'transparent';
-        b.style.color=activeParams[key]?'#fff':color;
-        renderAllCharts(aggregate(filteredData));
-      };})(p.key,p.color,btn);
+// ─── KPI CARDS ────────────────────────────────────────────
+function buildKPIs() {
+  var div = document.getElementById('kpis');
+  div.innerHTML = CARD_KEYS.map(function(key) {
+    var cd = COL_DEFS.filter(function(c){ return c.key === key; })[0];
+    var color = cd ? cd.color : '#58a6ff';
+    return '<div class="kpi" style="border-top-color:'+color+'" id="kpi_'+key+'">'+
+      '<div class="k-lbl">'+(cd?cd.label:key)+'</div>'+
+      '<div class="k-val" id="kv_'+key+'">—<span class="k-unit">'+(cd?cd.unit:'')+'</span></div>'+
+      '<div class="k-range" id="kr_'+key+'"></div>'+
+      '<div class="k-cnt" id="kc_'+key+'"></div>'+
+      '</div>';
+  }).join('');
+  updateKPIs(allData);
+}
+
+function updateKPIs(data) {
+  CARD_KEYS.forEach(function(key) {
+    var cd = COL_DEFS.filter(function(c){ return c.key === key; })[0];
+    var vals = data.map(function(r){ return parseNum(r[key]); }).filter(function(v){ return v !== null; });
+    var kv = document.getElementById('kv_'+key);
+    var kr = document.getElementById('kr_'+key);
+    var kc = document.getElementById('kc_'+key);
+    if (!kv) return;
+    if (!vals.length) {
+      kv.innerHTML = '—<span class="k-unit">'+(cd?cd.unit:'')+'</span>';
+      if (kr) kr.textContent = 'No data in range';
+      if (kc) kc.textContent = '0 / '+data.length.toLocaleString()+' rows';
+      return;
+    }
+    var avg = vals.reduce(function(a,b){ return a+b; }, 0) / vals.length;
+    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+    kv.innerHTML = avg.toFixed(2)+'<span class="k-unit">'+(cd?cd.unit:'')+'</span>';
+    if (kr) kr.textContent = 'min '+mn.toFixed(2)+' · max '+mx.toFixed(2);
+    if (kc) kc.textContent = vals.length.toLocaleString()+' / '+data.length.toLocaleString()+' have data';
+  });
+}
+
+// ─── TOGGLE BUTTONS ──────────────────────────────────────
+function buildToggleButtons() {
+  var div = document.getElementById('toggleRow');
+  div.innerHTML = '';
+  var groups = [
+    {id:'flow', label:'Flow'},
+    {id:'zone', label:'Zone Flows'},
+    {id:'pressure', label:'Pressure'},
+    {id:'oil', label:'Oil Sep.'},
+    {id:'dew', label:'Dew Point'},
+    {id:'power', label:'Power'},
+    {id:'machine', label:'Machine Zones'}
+  ];
+  groups.forEach(function(g) {
+    var defs = COL_DEFS.filter(function(c){ return c.group === g.id; });
+    if (!defs.length) return;
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-right:10px';
+    var lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;margin-right:2px';
+    lbl.textContent = g.label+':';
+    wrap.appendChild(lbl);
+    defs.forEach(function(p) {
+      var btn = document.createElement('button');
+      btn.className = 'tbtn';
+      btn.id = 'tbtn_'+p.key;
+      btn.textContent = p.label;
+      btn.style.cssText = 'border-color:'+p.color+';color:'+p.color+';background:'+p.color+'22';
+      btn.onclick = (function(key, color, b) {
+        return function() {
+          var on = Object.values(activeParams).filter(Boolean).length;
+          if (activeParams[key] && on <= 1) return;
+          activeParams[key] = !activeParams[key];
+          b.style.background = activeParams[key] ? color+'22' : 'transparent';
+          b.style.color = activeParams[key] ? color : 'var(--muted2)';
+          b.style.borderColor = activeParams[key] ? color : 'var(--border)';
+          renderAllCharts(aggregateData(filteredData));
+        };
+      })(p.key, p.color, btn);
       wrap.appendChild(btn);
     });
     div.appendChild(wrap);
   });
 }
 
-// ═══════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════
-function fmtTS(ts){
-  if(!ts) return '—';
-  var d=(ts instanceof Date)?ts:new Date(ts);if(isNaN(d)) return String(ts);
-  var p=function(n){return String(n).padStart(2,'0');};
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-}
-function fmtLbl(ts,agg){
-  if(!ts||isNaN(ts)) return '—';
-  var p=function(n){return String(n).padStart(2,'0');};
-  if(agg==='monthly') return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][ts.getMonth()]+' '+ts.getFullYear();
-  if(agg==='weekly'||agg==='daily') return p(ts.getDate())+'/'+p(ts.getMonth()+1);
-  if(agg==='hourly') return p(ts.getDate())+'/'+p(ts.getMonth()+1)+' '+p(ts.getHours())+'h';
-  return fmtTS(ts);
-}
-function num(v){var n=parseFloat(v);return isNaN(n)?null:n;}
-
-// ═══════════════════════════════════
-// CARDS
-// ═══════════════════════════════════
-function updateCards(data){
-  CARD_KEYS.forEach(function(key){
-    var cd=COL_DEFS.filter(function(c){return c.key===key;})[0];
-    var vals=data.map(function(r){return num(r[key]);}).filter(function(v){return v!==null;});
-    var av=document.getElementById('cv_'+key);
-    var rg=document.getElementById('cr_'+key);
-    var cc=document.getElementById('cc_'+key);
-    if(!av) return;
-    if(!vals.length){
-      av.textContent='—';
-      if(rg) rg.textContent='No readings in range';
-      if(cc) cc.textContent='0 of '+data.length.toLocaleString()+' rows';
-      return;
-    }
-    var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
-    av.textContent=avg.toFixed(2)+(cd?' '+cd.unit:'');
-    if(rg) rg.textContent='Min '+Math.min.apply(null,vals).toFixed(2)+' · Max '+Math.max.apply(null,vals).toFixed(2);
-    if(cc) cc.textContent=vals.length.toLocaleString()+' of '+data.length.toLocaleString()+' rows have data';
-  });
-}
-
-// ═══════════════════════════════════
-// FILTER
-// ═══════════════════════════════════
-function applyFilters(){
-  var from=document.getElementById('from').value;
-  var to=document.getElementById('to').value;
-  var col=document.getElementById('fcol').value;
-  var op=document.getElementById('fop').value;
-  var val=parseFloat(document.getElementById('fval').value);
-  filteredData=allData.filter(function(row){
-    var ts=row._ts;
-    if(from&&ts&&ts<new Date(from)) return false;
-    if(to&&ts&&ts>new Date(to+'T23:59:59')) return false;
-    if(col&&!isNaN(val)){
-      var rv=num(row[col]);if(rv===null) return false;
-      if(op==='gt'&&rv<=val) return false;
-      if(op==='lt'&&rv>=val) return false;
-      if(op==='gte'&&rv<val) return false;
-      if(op==='lte'&&rv>val) return false;
-      if(op==='eq'&&rv!==val) return false;
+// ─── FILTER + AGGREGATION ────────────────────────────────
+function applyFilters() {
+  var from = document.getElementById('from').value;
+  var to   = document.getElementById('to').value;
+  var col  = document.getElementById('fcol').value;
+  var op   = document.getElementById('fop').value;
+  var val  = parseFloat(document.getElementById('fval').value);
+  
+  filteredData = allData.filter(function(row) {
+    var ts = row._ts;
+    if (from && ts && ts < new Date(from)) return false;
+    if (to   && ts && ts > new Date(to+'T23:59:59')) return false;
+    if (col && !isNaN(val)) {
+      var rv = parseNum(row[col]);
+      if (rv === null) return false;
+      if (op === 'gt'  && rv <= val) return false;
+      if (op === 'lt'  && rv >= val) return false;
+      if (op === 'gte' && rv < val)  return false;
+      if (op === 'lte' && rv > val)  return false;
+      if (op === 'eq'  && rv !== val)return false;
     }
     return true;
   });
-  currentPage=1;
-  updateStatsRow();updateActiveLabel();
-  updateCards(filteredData);
-  var aggd=aggregate(filteredData);
+  
+  currentPage = 1;
+  updateStatChips();
+  updateActiveLabel();
+  updateKPIs(filteredData);
+  var aggd = aggregateData(filteredData);
   renderAllCharts(aggd);
   renderTable(filteredData);
 }
 
-function updateStatsRow(){
-  document.getElementById('statTotal').textContent=allData.length.toLocaleString();
-  document.getElementById('statFiltered').textContent=filteredData.length.toLocaleString();
-  if(filteredData.length){
-    var f=filteredData[0]._ts,l=filteredData[filteredData.length-1]._ts;
-    document.getElementById('statRange').textContent=(f?fmtTS(f).split(' ')[0]:'—')+' → '+(l?fmtTS(l).split(' ')[0]:'—');
-  } else document.getElementById('statRange').textContent='—';
-}
-function updateActiveLabel(){
-  var parts=[];
-  var from=document.getElementById('from').value,to=document.getElementById('to').value;
-  if(from||to) parts.push('Date: '+(from||'start')+' → '+(to||'now'));
-  var col=document.getElementById('fcol').value,fv=document.getElementById('fval').value;
-  if(col&&fv) parts.push(col+' '+{gt:'>',lt:'<',gte:'≥',lte:'≤',eq:'='}[document.getElementById('fop').value]+' '+fv);
-  document.getElementById('afl').textContent=parts.length?'🔍 Filters: '+parts.join(' | '):'';
-}
-function applyQuickRange(){
-  var v=document.getElementById('qr').value;
-  if(!v||v==='all'){document.getElementById('from').value='';document.getElementById('to').value='';if(allData.length)applyFilters();return;}
-  var toD=new Date(),fromD=new Date();
-  fromD.setDate(fromD.getDate()-parseInt(v));
-  document.getElementById('to').value=toD.toISOString().split('T')[0];
-  document.getElementById('from').value=fromD.toISOString().split('T')[0];
-  if(allData.length) applyFilters();
-}
-function doReset(){
-  document.getElementById('qr').value='all';
-  document.getElementById('agg').value='daily';
-  document.getElementById('fcol').value='';
-  document.getElementById('fval').value='';
-  document.getElementById('from').value='';
-  document.getElementById('to').value='';
-  document.getElementById('afl').textContent='';
-  COL_DEFS.forEach(function(c){activeParams[c.key]=true;});
-  buildParamButtons();applyFilters();
+function updateStatChips() {
+  document.getElementById('statTotal').textContent = allData.length.toLocaleString();
+  document.getElementById('statFiltered').textContent = filteredData.length.toLocaleString();
+  if (filteredData.length) {
+    var f = filteredData[0]._ts, l = filteredData[filteredData.length-1]._ts;
+    document.getElementById('statRange').textContent =
+      (f?fmtTS(f).split(' ')[0]:'—')+' → '+(l?fmtTS(l).split(' ')[0]:'—');
+  } else {
+    document.getElementById('statRange').textContent = '—';
+  }
 }
 
-// ═══════════════════════════════════
-// AGGREGATION
-// ═══════════════════════════════════
-function aggregate(data){
-  var agg=document.getElementById('agg').value;
-  if(agg==='raw') return data;
-  var groups={};
-  var pad=function(n){return String(n).padStart(2,'0');};
-  data.forEach(function(row){
-    var ts=row._ts;if(!ts||isNaN(ts)) return;
+function updateActiveLabel() {
+  var parts = [];
+  var from = document.getElementById('from').value, to = document.getElementById('to').value;
+  if (from || to) parts.push('Date: '+(from||'start')+' → '+(to||'now'));
+  var col = document.getElementById('fcol').value, fv = document.getElementById('fval').value;
+  if (col && fv) parts.push(col+' '+{gt:'>',lt:'<',gte:'≥',lte:'≤',eq:'='}[document.getElementById('fop').value]+' '+fv);
+  document.getElementById('afl').textContent = parts.length ? '🔍 '+parts.join(' | ') : '';
+}
+
+function applyQuickRange() {
+  var v = document.getElementById('qr').value;
+  if (!v || v === 'all') {
+    document.getElementById('from').value = '';
+    document.getElementById('to').value = '';
+    if (allData.length) applyFilters();
+    return;
+  }
+  var toD = new Date(), fromD = new Date();
+  fromD.setDate(fromD.getDate() - parseInt(v, 10));
+  document.getElementById('to').value = toD.toISOString().split('T')[0];
+  document.getElementById('from').value = fromD.toISOString().split('T')[0];
+  if (allData.length) applyFilters();
+}
+
+function doReset() {
+  document.getElementById('qr').value = 'all';
+  document.getElementById('agg').value = 'daily';
+  document.getElementById('chartType').value = 'line';
+  document.getElementById('fcol').value = '';
+  document.getElementById('fval').value = '';
+  document.getElementById('from').value = '';
+  document.getElementById('to').value = '';
+  COL_DEFS.forEach(function(c){ activeParams[c.key] = true; });
+  buildToggleButtons();
+  applyFilters();
+}
+
+function aggregateData(data) {
+  var aggMode = document.getElementById('agg').value;
+  if (aggMode === 'raw') return data;
+  var groups = {}, keys = [];
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  
+  data.forEach(function(row) {
+    var ts = row._ts;
+    if (!ts || isNaN(ts.getTime())) return;
     var key;
-    if(agg==='monthly') key=ts.getFullYear()+'-'+pad(ts.getMonth()+1);
-    else if(agg==='weekly'){var d=new Date(ts);d.setDate(d.getDate()-d.getDay());key=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
-    else if(agg==='daily') key=ts.getFullYear()+'-'+pad(ts.getMonth()+1)+'-'+pad(ts.getDate());
-    else key=ts.getFullYear()+'-'+pad(ts.getMonth()+1)+'-'+pad(ts.getDate())+'T'+pad(ts.getHours())+':00';
-    if(!groups[key]) groups[key]=[];
+    if (aggMode === 'monthly') {
+      key = ts.getFullYear()+'-'+pad(ts.getMonth()+1);
+    } else if (aggMode === 'weekly') {
+      var d = new Date(ts); d.setDate(d.getDate()-d.getDay());
+      key = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    } else if (aggMode === 'daily') {
+      key = ts.getFullYear()+'-'+pad(ts.getMonth()+1)+'-'+pad(ts.getDate());
+    } else { // hourly
+      key = ts.getFullYear()+'-'+pad(ts.getMonth()+1)+'-'+pad(ts.getDate())+'T'+pad(ts.getHours())+':00';
+    }
+    if (!groups[key]) { groups[key] = []; keys.push(key); }
     groups[key].push(row);
   });
-  return Object.keys(groups).sort().map(function(k){
-    var rows=groups[k];
-    var r={_ts:rows[0]._ts,_label:k,_count:rows.length};
-    COL_DEFS.forEach(function(cd){
-      var vals=rows.map(function(row){return num(row[cd.key]);}).filter(function(v){return v!==null;});
-      r[cd.key]=vals.length?(+(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(3)):null;
+  
+  return keys.sort().map(function(k) {
+    var rows = groups[k];
+    var r = { _ts: rows[0]._ts, _label: k, _count: rows.length };
+    COL_DEFS.forEach(function(cd) {
+      var vals = rows.map(function(row){ return parseNum(row[cd.key]); })
+                     .filter(function(v){ return v !== null; });
+      r[cd.key] = vals.length
+        ? parseFloat((vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(4))
+        : null;
     });
     return r;
   });
 }
 
-// ═══════════════════════════════════
-// CHARTS
-// ═══════════════════════════════════
-function getLabels(data){
-  var agg=document.getElementById('agg').value;
-  return data.map(function(r){
-    var ts=r._ts instanceof Date?r._ts:(r._label?new Date(r._label):null);
-    if(r._label&&(!ts||isNaN(ts))) return r._label;
-    return fmtLbl(ts&&!isNaN(ts)?ts:null,agg);
+// ─── CHARTS ──────────────────────────────────────────────
+function getChartLabels(data) {
+  var aggMode = document.getElementById('agg').value;
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  return data.map(function(r) {
+    if (r._label) return r._label;
+    var ts = r._ts;
+    if (!ts) return '—';
+    if (aggMode === 'monthly') return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][ts.getMonth()]+' '+ts.getFullYear();
+    if (aggMode === 'weekly' || aggMode === 'daily') return pad(ts.getDate())+'/'+pad(ts.getMonth()+1);
+    if (aggMode === 'hourly') return pad(ts.getDate())+'/'+pad(ts.getMonth()+1)+' '+pad(ts.getHours())+'h';
+    return fmtTS(ts);
   });
 }
-function mkDS(key,color,data,yAxis,fill){
-  var cd=COL_DEFS.filter(function(c){return c.key===key;})[0];
-  var isBar=document.getElementById('chartType').value==='bar';
-  return{
-    label:cd?(cd.label+(cd.unit?' ('+cd.unit+')':'')):key,
-    data:data.map(function(r){return num(r[key]);}),
-    borderColor:color,
-    backgroundColor:isBar?color+'bb':(fill?color+'33':color+'15'),
-    borderWidth:isBar?0:1.8,
-    pointRadius:data.length>500?0:(data.length>100?1:2),
-    tension:0.3,fill:!isBar&&!!fill,spanGaps:true,
-    yAxisID:yAxis||'y'
+
+function mkDataset(key, color, data, yAxisID) {
+  var cd = COL_DEFS.filter(function(c){ return c.key === key; })[0];
+  var isBar = document.getElementById('chartType').value === 'bar';
+  var pts = data.length > 500 ? 0 : (data.length > 200 ? 1 : 2);
+  return {
+    label: cd ? (cd.label + ' (' + cd.unit + ')') : key,
+    data: data.map(function(r){ return parseNum(r[key]); }),
+    borderColor: color,
+    backgroundColor: isBar ? color+'cc' : color+'18',
+    borderWidth: isBar ? 0 : 1.5,
+    pointRadius: pts,
+    pointHoverRadius: 4,
+    tension: 0.3,
+    fill: !isBar,
+    spanGaps: true,
+    yAxisID: yAxisID || 'y'
   };
 }
-function mkOpts(yL,y2L){
-  var sc={
-    x:{ticks:{color:'#999',maxTicksLimit:14,font:{size:9}},grid:{color:'#f0f2f8'}},
-    y:{type:'linear',position:'left',title:{display:!!yL,text:yL||'',color:'#aaa',font:{size:9}},ticks:{color:'#999',font:{size:9}},grid:{color:'#f0f2f8'}}
-  };
-  if(y2L) sc.y1={type:'linear',position:'right',title:{display:true,text:y2L,color:'#aaa',font:{size:9}},ticks:{color:'#999',font:{size:9}},grid:{drawOnChartArea:false}};
-  return{
-    responsive:true,maintainAspectRatio:true,animation:false,
-    interaction:{mode:'index',intersect:false},
-    plugins:{
-      legend:{labels:{color:'#555',font:{size:10},usePointStyle:true,pointStyleWidth:8,padding:10}},
-      tooltip:{backgroundColor:'#fff',borderColor:'#e8eaf0',borderWidth:1,titleColor:'#1a1a2e',bodyColor:'#555',padding:9}
+
+function mkChartOptions(yLabel, y2Label) {
+  var scales = {
+    x: {
+      ticks: { color: '#6e7681', maxTicksLimit: 14, font: { size: 9 } },
+      grid: { color: '#21262d' }
     },
-    scales:sc
+    y: {
+      type: 'linear', position: 'left',
+      title: { display: !!yLabel, text: yLabel||'', color: '#6e7681', font: { size: 9 } },
+      ticks: { color: '#6e7681', font: { size: 9 } },
+      grid: { color: '#21262d' }
+    }
+  };
+  if (y2Label) {
+    scales.y1 = {
+      type: 'linear', position: 'right',
+      title: { display: true, text: y2Label, color: '#6e7681', font: { size: 9 } },
+      ticks: { color: '#6e7681', font: { size: 9 } },
+      grid: { drawOnChartArea: false }
+    };
+  }
+  return {
+    responsive: true, maintainAspectRatio: true, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#8b949e', font: { size: 10 }, usePointStyle: true, pointStyleWidth: 7, padding: 12 } },
+      tooltip: {
+        backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+        titleColor: '#e6edf3', bodyColor: '#8b949e', padding: 10
+      }
+    },
+    scales: scales
   };
 }
-function renderChart(wrapId,chartKey,ctype,datasets,labels,opts){
-  var wrap=document.getElementById(wrapId);if(!wrap) return;
-  if(charts[chartKey]){try{charts[chartKey].destroy();}catch(e){}charts[chartKey]=null;}
-  var anyData=datasets.length&&datasets.some(function(ds){return ds.data.some(function(v){return v!==null;});});
-  if(!anyData){
-    wrap.innerHTML='<div class="no-data-msg">📭 No data available for this parameter in the selected range</div>';
+
+function renderChart(wrapId, chartKey, datasets, labels, opts) {
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (charts[chartKey]) { try { charts[chartKey].destroy(); } catch(e){} charts[chartKey] = null; }
+  
+  var hasData = datasets.length > 0 && datasets.some(function(ds) {
+    return ds.data.some(function(v){ return v !== null; });
+  });
+  
+  if (!hasData) {
+    wrap.innerHTML = '<div class="no-data">📭 No data for this parameter in selected range</div>';
     return;
   }
-  wrap.innerHTML='<canvas style="max-height:230px"></canvas>';
-  charts[chartKey]=new Chart(wrap.querySelector('canvas'),{type:ctype,data:{labels:labels,datasets:datasets},options:opts});
-}
-function renderAllCharts(data){
-  var labels=getLabels(data);
-  var ctype=document.getElementById('chartType').value==='bar'?'bar':'line';
-
-  var fds=[];
-  if(activeParams.flow)   fds.push(mkDS('flow',  '#0ea5e9',data,'y', true));
-  if(activeParams.Savio)  fds.push(mkDS('Savio', '#3b82f6',data,'y', false));
-  if(activeParams.Murata) fds.push(mkDS('Murata','#6366f1',data,'y1',false));
-  renderChart('flowWrap','flow',ctype,fds,labels,mkOpts('CFM (Total/Savio)','CFM (Murata)'));
-
-  var zds=[];
-  if(activeParams.Spg_Hall_A)  zds.push(mkDS('Spg_Hall_A', '#8b5cf6',data,'y', true));
-  if(activeParams.Spg_Hall_B)  zds.push(mkDS('Spg_Hall_B', '#a855f7',data,'y', false));
-  if(activeParams.Prep_Hall_1) zds.push(mkDS('Prep_Hall_1','#c084fc',data,'y1',false));
-  if(activeParams.Prep_Hall_2) zds.push(mkDS('Prep_Hall_2','#d8b4fe',data,'y1',false));
-  renderChart('zoneWrap','zone',ctype,zds,labels,mkOpts('CFM (Spg Halls)','CFM (Prep Halls)'));
-
-  var pds=[];
-  if(activeParams.Comp_Outlet_Pres)  pds.push(mkDS('Comp_Outlet_Pres', '#f97316',data,'y', true));
-  if(activeParams.Before_Dryer_Pres) pds.push(mkDS('Before_Dryer_Pres','#fb923c',data,'y', false));
-  if(activeParams.After_Dryer_Pres)  pds.push(mkDS('After_Dryer_Pres', '#fbbf24',data,'y1',false));
-  renderChart('pressWrap','press',ctype,pds,labels,mkOpts('Pressure (bar) Inlet','Pressure (bar) Dryer'));
-
-  var dds=[];
-  if(activeParams.Dew_Point) dds.push(mkDS('Dew_Point','#22d3ee',data,'y',true));
-  renderChart('dewWrap','dew',ctype,dds,labels,mkOpts('Dew Point (°C)'));
-
-  var pwd=[];
-  if(activeParams.Power) pwd.push(mkDS('Power','#ef4444',data,'y',true));
-  renderChart('powerWrap','power',ctype,pwd,labels,mkOpts('Power (kW)'));
-
-  var ods=[];
-  if(activeParams.Oil_Sep_Outlet_Pres) ods.push(mkDS('Oil_Sep_Outlet_Pres','#f59e0b',data,'y',true));
-  renderChart('oilWrap','oil',ctype,ods,labels,mkOpts('Pressure (bar)'));
-
-  var mds=[];
-  if(activeParams.Linkcone_43)  mds.push(mkDS('Linkcone_43', '#10b981',data,'y', true));
-  if(activeParams.Ringframe_43) mds.push(mkDS('Ringframe_43','#059669',data,'y', false));
-  if(activeParams.Linkconer_44) mds.push(mkDS('Linkconer_44','#34d399',data,'y1',false));
-  if(activeParams.Linkconer_45) mds.push(mkDS('Linkconer_45','#6ee7b7',data,'y1',false));
-  renderChart('machineWrap','machine',ctype,mds,labels,mkOpts('CFM (Linkcone/Ringframe 43)','CFM (Linckoner 44/45)'));
-}
-
-// ═══════════════════════════════════
-// TABLE
-// ═══════════════════════════════════
-function renderTable(data){
-  var ps=parseInt(document.getElementById('pageSize').value);
-  var tp=Math.max(1,Math.ceil(data.length/ps));
-  if(currentPage>tp) currentPage=tp;
-  var sorted=data.slice().sort(function(a,b){
-    var va,vb;
-    if(sortKey==='Timestamp'){va=(a._ts||new Date(0)).getTime();vb=(b._ts||new Date(0)).getTime();}
-    else{va=num(a[sortKey])||0;vb=num(b[sortKey])||0;}
-    return(va-vb)*sortDir;
+  
+  wrap.innerHTML = '<canvas style="max-height:220px"></canvas>';
+  var ctype = document.getElementById('chartType').value === 'bar' ? 'bar' : 'line';
+  charts[chartKey] = new Chart(wrap.querySelector('canvas'), {
+    type: ctype,
+    data: { labels: labels, datasets: datasets },
+    options: opts
   });
-  var start=(currentPage-1)*ps;
-  var page=sorted.slice(start,start+ps);
-  document.getElementById('ttitle').textContent='Data — '+data.length.toLocaleString()+' records'+(data.length!==allData.length?' (filtered from '+allData.length.toLocaleString()+')':'');
-  if(!data.length){
-    document.getElementById('table').innerHTML='<div style="text-align:center;padding:40px;color:#bbb">No records match filters.</div>';
-    document.getElementById('pagination').innerHTML='';return;
+}
+
+function renderAllCharts(data) {
+  var labels = getChartLabels(data);
+  
+  // Flow chart
+  var fds = [];
+  if (activeParams.flow)   fds.push(mkDataset('flow',  '#58a6ff', data, 'y'));
+  if (activeParams.Savio)  fds.push(mkDataset('Savio', '#388bfd', data, 'y'));
+  if (activeParams.Murata) fds.push(mkDataset('Murata','#7c48ee', data, 'y1'));
+  renderChart('flowWrap', 'flow', fds, labels, mkChartOptions('CFM (Total/Savio)', 'CFM (Murata)'));
+  
+  // Zone chart
+  var zds = [];
+  if (activeParams.Spg_Hall_A)  zds.push(mkDataset('Spg_Hall_A', '#d2a8ff', data, 'y'));
+  if (activeParams.Spg_Hall_B)  zds.push(mkDataset('Spg_Hall_B', '#bc8cff', data, 'y'));
+  if (activeParams.Prep_Hall_1) zds.push(mkDataset('Prep_Hall_1','#e8b4ff', data, 'y1'));
+  if (activeParams.Prep_Hall_2) zds.push(mkDataset('Prep_Hall_2','#f0d0ff', data, 'y1'));
+  renderChart('zoneWrap', 'zone', zds, labels, mkChartOptions('CFM (Spg Halls)', 'CFM (Prep Halls)'));
+  
+  // Pressure chart
+  var pds = [];
+  if (activeParams.Comp_Outlet_Pres)  pds.push(mkDataset('Comp_Outlet_Pres', '#ffa657', data, 'y'));
+  if (activeParams.Before_Dryer_Pres) pds.push(mkDataset('Before_Dryer_Pres','#ff8c61', data, 'y'));
+  if (activeParams.After_Dryer_Pres)  pds.push(mkDataset('After_Dryer_Pres', '#ffd700', data, 'y1'));
+  renderChart('pressWrap', 'press', pds, labels, mkChartOptions('bar (inlet)', 'bar (dryer)'));
+  
+  // Dew Point
+  var dds = [];
+  if (activeParams.Dew_Point) dds.push(mkDataset('Dew_Point','#79c0ff', data, 'y'));
+  renderChart('dewWrap', 'dew', dds, labels, mkChartOptions('°C'));
+  
+  // Power
+  var pwd = [];
+  if (activeParams.Power) pwd.push(mkDataset('Power','#f85149', data, 'y'));
+  renderChart('powerWrap', 'power', pwd, labels, mkChartOptions('kW'));
+  
+  // Oil
+  var ods = [];
+  if (activeParams.Oil_Sep_Outlet_Pres) ods.push(mkDataset('Oil_Sep_Outlet_Pres','#3fb950', data, 'y'));
+  renderChart('oilWrap', 'oil', ods, labels, mkChartOptions('bar'));
+  
+  // Machine zones
+  var mds = [];
+  if (activeParams.Linkcone_43)  mds.push(mkDataset('Linkcone_43', '#56d364', data, 'y'));
+  if (activeParams.Ringframe_43) mds.push(mkDataset('Ringframe_43','#26a641', data, 'y'));
+  if (activeParams.Linkconer_44) mds.push(mkDataset('Linkconer_44','#1a7f37', data, 'y1'));
+  if (activeParams.Linkconer_45) mds.push(mkDataset('Linkconer_45','#0f5a26', data, 'y1'));
+  renderChart('machineWrap', 'machine', mds, labels, mkChartOptions('CFM (43)', 'CFM (44/45)'));
+}
+
+// ─── TABLE ───────────────────────────────────────────────
+function fmtTS(ts) {
+  if (!ts) return '—';
+  var d = (ts instanceof Date) ? ts : new Date(ts);
+  if (isNaN(d)) return String(ts);
+  var p = function(n){ return String(n).padStart(2,'0'); };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+function renderTable(data) {
+  var ps = parseInt(document.getElementById('pageSize').value, 10);
+  var tp = Math.max(1, Math.ceil(data.length / ps));
+  if (currentPage > tp) currentPage = tp;
+  
+  var sorted = data.slice().sort(function(a, b) {
+    var va, vb;
+    if (sortKey === 'Timestamp') {
+      va = (a._ts || new Date(0)).getTime();
+      vb = (b._ts || new Date(0)).getTime();
+    } else {
+      va = parseNum(a[sortKey]) || 0;
+      vb = parseNum(b[sortKey]) || 0;
+    }
+    return (va - vb) * sortDir;
+  });
+  
+  var start = (currentPage - 1) * ps;
+  var page = sorted.slice(start, start + ps);
+  
+  document.getElementById('tblTitle').textContent =
+    'Data — '+data.length.toLocaleString()+' records'+
+    (data.length !== allData.length ? ' (filtered from '+allData.length.toLocaleString()+')' : '');
+  
+  if (!data.length) {
+    document.getElementById('tableDiv').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2)">No records match the current filters.</div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
   }
-  var keys=['Timestamp'].concat(COL_DEFS.map(function(c){return c.key;}));
-  var hdrs=['Timestamp'].concat(COL_DEFS.map(function(c){return c.label+'<br><small style="color:#999;font-weight:400">'+c.unit+'</small>';}));
-  var html='<table><thead><tr>';
-  hdrs.forEach(function(h,i){
-    var k=keys[i],cls=sortKey===k?(sortDir===1?'sort-asc':'sort-desc'):'';
-    html+='<th class="'+cls+'" onclick="doSort(\''+k+'\')">'+h+'</th>';
+  
+  var allKeys = ['Timestamp'].concat(COL_DEFS.map(function(c){ return c.key; }));
+  var allHdrs = ['Timestamp'].concat(COL_DEFS.map(function(c){
+    return c.label+'<br><small style="color:var(--muted2);font-weight:400">'+c.unit+'</small>';
+  }));
+  
+  var html = '<table><thead><tr>';
+  allHdrs.forEach(function(h, i) {
+    var k = allKeys[i];
+    var cls = sortKey === k ? (sortDir === 1 ? ' sort-asc' : ' sort-desc') : '';
+    html += '<th class="'+cls+'" onclick="doSort(\''+k+'\')" >'+h+'</th>';
   });
-  html+='</tr></thead><tbody>';
-  page.forEach(function(row){
-    html+='<tr><td>'+fmtTS(row._ts)+'</td>';
-    COL_DEFS.forEach(function(cd){var v=num(row[cd.key]);html+='<td>'+(v!==null?v.toFixed(3):'—')+'</td>';});
-    html+='</tr>';
+  html += '</tr></thead><tbody>';
+  
+  page.forEach(function(row) {
+    html += '<tr><td>'+fmtTS(row._ts)+'</td>';
+    COL_DEFS.forEach(function(cd) {
+      var v = parseNum(row[cd.key]);
+      html += '<td>'+(v !== null ? v.toFixed(3) : '<span style="color:var(--muted2)">—</span>')+'</td>';
+    });
+    html += '</tr>';
   });
-  html+='</tbody></table>';
-  document.getElementById('table').innerHTML=html;
-  renderPagination(tp,data.length);
+  html += '</tbody></table>';
+  
+  document.getElementById('tableDiv').innerHTML = html;
+  renderPagination(tp, data.length);
 }
-function renderPagination(tp,total){
-  if(tp<=1){document.getElementById('pagination').innerHTML='';return;}
-  var html='<button class="pg-btn" onclick="changePage(1)" '+(currentPage===1?'disabled':'')+'>«</button>';
-  html+='<button class="pg-btn" onclick="changePage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>‹</button>';
-  var s=Math.max(1,currentPage-2),e=Math.min(tp,currentPage+2);
-  if(s>1) html+='<button class="pg-btn" onclick="changePage(1)">1</button>'+(s>2?'<span style="color:#ccc;padding:0 3px">…</span>':'');
-  for(var p=s;p<=e;p++) html+='<button class="pg-btn'+(p===currentPage?' active':'')+'" onclick="changePage('+p+')">'+p+'</button>';
-  if(e<tp) html+=(e<tp-1?'<span style="color:#ccc;padding:0 3px">…</span>':'')+
-    '<button class="pg-btn" onclick="changePage('+tp+')">'+tp+'</button>';
-  html+='<button class="pg-btn" onclick="changePage('+(currentPage+1)+')" '+(currentPage===tp?'disabled':'')+'>›</button>';
-  html+='<button class="pg-btn" onclick="changePage('+tp+')" '+(currentPage===tp?'disabled':'')+'>»</button>';
-  html+='<span class="pg-info">Page '+currentPage+' of '+tp+' · '+total.toLocaleString()+' records</span>';
-  document.getElementById('pagination').innerHTML=html;
-}
-function changePage(p){var ps=parseInt(document.getElementById('pageSize').value);currentPage=Math.max(1,Math.min(p,Math.ceil(filteredData.length/ps)));renderTable(filteredData);}
-function doSort(key){if(sortKey===key)sortDir*=-1;else{sortKey=key;sortDir=-1;}renderTable(filteredData);}
 
-// ═══════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════
-function doExport(){
-  var data=aggregate(filteredData);
-  var hdr=['Timestamp'].concat(COL_DEFS.map(function(c){return c.label+' ('+c.unit+')';}));
-  var csv=hdr.join(',')+'\n';
-  data.forEach(function(row){
-    var line=['"'+fmtTS(row._ts)+'"'].concat(COL_DEFS.map(function(cd){var v=num(row[cd.key]);return v!==null?String(v):'';} ));
-    csv+=line.join(',')+'\n';
+function renderPagination(tp, total) {
+  if (tp <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  var html = '';
+  html += '<button class="pg-btn" onclick="changePage(1)" '+(currentPage===1?'disabled':'')+'>«</button>';
+  html += '<button class="pg-btn" onclick="changePage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>‹</button>';
+  var s = Math.max(1, currentPage-2), e = Math.min(tp, currentPage+2);
+  if (s > 1) html += '<button class="pg-btn" onclick="changePage(1)">1</button>'+(s>2?'<span style="padding:0 3px;color:var(--muted2)">…</span>':'');
+  for (var p = s; p <= e; p++)
+    html += '<button class="pg-btn'+(p===currentPage?' active':'')+'" onclick="changePage('+p+')">'+p+'</button>';
+  if (e < tp) html += (e<tp-1?'<span style="padding:0 3px;color:var(--muted2)">…</span>':'')+
+    '<button class="pg-btn" onclick="changePage('+tp+')">'+tp+'</button>';
+  html += '<button class="pg-btn" onclick="changePage('+(currentPage+1)+')" '+(currentPage===tp?'disabled':'')+'>›</button>';
+  html += '<button class="pg-btn" onclick="changePage('+tp+')" '+(currentPage===tp?'disabled':'')+'>»</button>';
+  html += '<span class="pg-info">Page '+currentPage+' of '+tp+' · '+total.toLocaleString()+' records</span>';
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function changePage(p) {
+  var ps = parseInt(document.getElementById('pageSize').value, 10);
+  currentPage = Math.max(1, Math.min(p, Math.ceil(filteredData.length / ps)));
+  renderTable(filteredData);
+}
+
+function doSort(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = -1; }
+  renderTable(filteredData);
+}
+
+// ─── EXPORT ──────────────────────────────────────────────
+function doExport() {
+  if (!filteredData.length) { alert('No data to export.'); return; }
+  var data = aggregateData(filteredData);
+  var hdr = ['Timestamp'].concat(COL_DEFS.map(function(c){ return c.label+' ('+c.unit+')'; }));
+  var csv = hdr.join(',') + '\n';
+  data.forEach(function(row) {
+    var line = ['"'+fmtTS(row._ts)+'"'].concat(COL_DEFS.map(function(cd) {
+      var v = parseNum(row[cd.key]);
+      return v !== null ? String(v) : '';
+    }));
+    csv += line.join(',') + '\n';
   });
-  var a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='SJJ_U2_'+new Date().toISOString().slice(0,10)+'.csv';
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'SJJ_U2_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
 
-// ═══════════════════════════════════
-// INIT
-// ═══════════════════════════════════
+// ─── INIT ────────────────────────────────────────────────
 doFetch();
 </script>
 </body>
