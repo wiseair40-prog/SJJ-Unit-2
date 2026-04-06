@@ -20,6 +20,10 @@ body { background: #f5f7fa; color: #1a1a2e; padding: 20px; min-height: 100vh; }
 .btn-retry { background: #f97316; color: #fff; border: none; border-radius: 8px; padding: 9px 22px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 .btn-retry:hover { opacity: .85; }
 
+/* Debug panel */
+.debug-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 11px; color: #166534; display:none; }
+.debug-box pre { white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
+
 .section-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 7px; }
 
 .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -29,7 +33,6 @@ body { background: #f5f7fa; color: #1a1a2e; padding: 20px; min-height: 100vh; }
 .card .val { font-size: 17px; font-weight: 700; color: #1a1a2e; margin: 5px 0 2px; }
 .card .rng { font-size: 10px; color: #bbb; }
 
-/* Stats Row */
 .stats-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .stat-chip { background: #fff; border: 1px solid #e8eaf0; border-radius: 20px; padding: 5px 14px;
              font-size: 11px; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
@@ -50,10 +53,7 @@ body { background: #f5f7fa; color: #1a1a2e; padding: 20px; min-height: 100vh; }
 .btn-outline  { background: transparent; border: 1px solid #ccc; color: #666; }
 .btn-success  { background: #22c55e; color: #fff; }
 .btn-refresh  { background: #f59e0b; color: #fff; font-size: 11px; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; }
-
-/* Group section headers */
-.group-label { font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase;
-               letter-spacing: 1px; margin: 10px 0 6px; padding-left: 2px; }
+.btn-debug    { background: #6b7280; color: #fff; font-size: 11px; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; }
 
 .params { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
 .pbtn { padding: 5px 14px; border-radius: 20px; border: 2px solid; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; }
@@ -89,7 +89,6 @@ tr:hover td { background: #f5f3ff; }
 .err-box { background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px;
            padding: 20px; color: #dc2626; font-size: 13px; line-height: 2; }
 
-/* Pagination */
 .pagination { display: flex; gap: 5px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .pg-btn { padding: 4px 11px; border-radius: 6px; border: 1px solid #dde1ec;
           background: #fff; color: #666; font-size: 11px; cursor: pointer; }
@@ -106,14 +105,19 @@ tr:hover td { background: #f5f3ff; }
 <div class="header">
   <div>
     <div class="title">🏭 SJJ Unit 2 — Historical Data Explorer</div>
-    <div class="subtitle">
-      Sheet: 2025 · Flow · Power · Pressure · Dew Point · Machine Zones
-    </div>
+    <div class="subtitle">Sheet: 2025 · Flow · Power · Pressure · Dew Point · Machine Zones</div>
   </div>
   <div class="header-right">
+    <button class="btn-debug" onclick="toggleDebug()">🔍 Debug</button>
     <button class="btn-refresh" onclick="doFetch()">↻ Refresh</button>
     <span id="sync" style="font-size:12px;font-weight:600;color:#f59e0b">● Connecting...</span>
   </div>
+</div>
+
+<!-- DEBUG PANEL -->
+<div class="debug-box" id="debugBox">
+  <strong>Column Mapping Debug:</strong>
+  <pre id="debugPre">—</pre>
 </div>
 
 <!-- ERROR BANNER -->
@@ -202,7 +206,7 @@ tr:hover td { background: #f5f3ff; }
         <option value="Before_Dryer_Pres">Before Dryer Pressure</option>
         <option value="After_Dryer_Pres">After Dryer Pressure</option>
         <option value="Oil_Sep_Outlet_Pres">Oil Sep. Outlet Pressure</option>
-        <option value="Linkcone_43">Linkcone 43</option>
+        <option value="Linkcone_43">Linkconer 43</option>
         <option value="Ringframe_43">Ringframe 43</option>
         <option value="Linkconer_44">Linkconer 44</option>
         <option value="Linkconer_45">Linkconer 45</option>
@@ -262,7 +266,7 @@ tr:hover td { background: #f5f3ff; }
     <canvas id="oilChart"></canvas>
   </div>
   <div class="cbox full">
-    <div class="ctitle"><span class="ctitle-dot" style="background:#10b981"></span>Machine Zones — Linkcone 43, Ringframe 43, Linkconer 44 &amp; 45</div>
+    <div class="ctitle"><span class="ctitle-dot" style="background:#10b981"></span>Machine Zones — Linkconer 43, Ringframe 43, Linkconer 44 &amp; 45</div>
     <canvas id="machineChart"></canvas>
   </div>
 </div>
@@ -291,42 +295,43 @@ tr:hover td { background: #f5f3ff; }
 'use strict';
 
 // ══════════════════════════════════════════════════════════
-// CONFIG — SJJ Unit 2
+// CONFIG
 // ══════════════════════════════════════════════════════════
 var SHEET_ID = '1fhxWeL6xOfgl7DtMWG0-XEEtOwfYQfdMTZMJhPkzoW0';
-var SHEET    = { name: '2025', gid: '1890584741' };
+var SHEET_GID = '1890584741';
 
-// Column definitions — exact headers from screenshot (row 1)
+// COL_DEFS: key = internal key, col = EXACT sheet header (or aliases to try), label, unit, color, group
+// We use a "candidates" array of possible headers (case-insensitive comparison) so minor spelling
+// differences in the sheet are handled automatically.
 var COL_DEFS = [
-  // key                   col header (EXACT from sheet)         label                    unit    color          group
-  { key:'flow',            col:'flow',                           label:'Total Flow',       unit:'CFM', color:'#0ea5e9', group:'flow'     },
-  { key:'Power',           col:'Power',                          label:'Power',            unit:'kW',  color:'#ef4444', group:'power'    },
-  { key:'Savio',           col:'Savio',                          label:'Savio',            unit:'CFM', color:'#3b82f6', group:'flow'     },
-  { key:'Murata',          col:'Murata',                         label:'Murata',           unit:'CFM', color:'#6366f1', group:'flow'     },
-  { key:'Spg_Hall_A',      col:'Spg Hall A',                     label:'Spg Hall A',       unit:'CFM', color:'#8b5cf6', group:'zone'     },
-  { key:'Spg_Hall_B',      col:'Spg Hall B',                     label:'Spg Hall B',       unit:'CFM', color:'#a855f7', group:'zone'     },
-  { key:'Prep_Hall_1',     col:'Prep hall 1',                    label:'Prep Hall 1',      unit:'CFM', color:'#c084fc', group:'zone'     },
-  { key:'Prep_Hall_2',     col:'Prep hall 2',                    label:'Prep Hall 2',      unit:'CFM', color:'#d8b4fe', group:'zone'     },
-  { key:'Dew_Point',       col:'Dew point',                      label:'Dew Point',        unit:'°C',  color:'#22d3ee', group:'dew'      },
-  { key:'Comp_Outlet_Pres',col:'Compressor outlet pressure',     label:'Comp Outlet Pres', unit:'bar', color:'#f97316', group:'pressure' },
-  { key:'Before_Dryer_Pres',col:'Before dryer pressure',        label:'Before Dryer Pres',unit:'bar', color:'#fb923c', group:'pressure' },
-  { key:'After_Dryer_Pres',col:'After Dryer Pressure',           label:'After Dryer Pres', unit:'bar', color:'#fbbf24', group:'pressure' },
-  { key:'Oil_Sep_Outlet_Pres',col:'Oil Seperator Outlet pressure',label:'Oil Sep Outlet',  unit:'bar', color:'#f59e0b', group:'oil'      },
-  { key:'Linkcone_43',     col:'Linkcone 43',                    label:'Linkcone 43',      unit:'CFM', color:'#10b981', group:'machine'  },
-  { key:'Ringframe_43',    col:'Ringframe 43',                   label:'Ringframe 43',     unit:'CFM', color:'#059669', group:'machine'  },
-  { key:'Linkconer_44',    col:'Linkconer 44',                   label:'Linkconer 44',     unit:'CFM', color:'#34d399', group:'machine'  },
-  { key:'Linkconer_45',    col:'Linkconer 45',                   label:'Linkconer 45',     unit:'CFM', color:'#6ee7b7', group:'machine'  },
+  { key:'flow',              candidates:['flow','total flow'],                                              label:'Total Flow',        unit:'CFM', color:'#0ea5e9', group:'flow'     },
+  { key:'Power',             candidates:['power'],                                                         label:'Power',             unit:'kW',  color:'#ef4444', group:'power'    },
+  { key:'Savio',             candidates:['savio'],                                                         label:'Savio',             unit:'CFM', color:'#3b82f6', group:'flow'     },
+  { key:'Murata',            candidates:['murata'],                                                        label:'Murata',            unit:'CFM', color:'#6366f1', group:'flow'     },
+  { key:'Spg_Hall_A',        candidates:['spg hall a','spghalla','spg_hall_a'],                            label:'Spg Hall A',        unit:'CFM', color:'#8b5cf6', group:'zone'     },
+  { key:'Spg_Hall_B',        candidates:['spg hall b','spghallb','spg_hall_b'],                            label:'Spg Hall B',        unit:'CFM', color:'#a855f7', group:'zone'     },
+  { key:'Prep_Hall_1',       candidates:['prep hall 1','prep hall1','prephall1','prep_hall_1'],             label:'Prep Hall 1',       unit:'CFM', color:'#c084fc', group:'zone'     },
+  { key:'Prep_Hall_2',       candidates:['prep hall 2','prep hall2','prephall2','prep_hall_2'],             label:'Prep Hall 2',       unit:'CFM', color:'#d8b4fe', group:'zone'     },
+  { key:'Dew_Point',         candidates:['dew point','dewpoint','dew_point'],                              label:'Dew Point',         unit:'°C',  color:'#22d3ee', group:'dew'      },
+  { key:'Comp_Outlet_Pres',  candidates:['compressor outlet pressure','comp outlet pressure','compressor outlet pres','compressor outlet','comp_outlet_pres'], label:'Comp Outlet Pres', unit:'bar', color:'#f97316', group:'pressure' },
+  { key:'Before_Dryer_Pres', candidates:['before dryer pressure','before dryer pres','before dryer','before_dryer_pres'],  label:'Before Dryer Pres', unit:'bar', color:'#fb923c', group:'pressure' },
+  { key:'After_Dryer_Pres',  candidates:['after dryer pressure','after dryer pres','after dryer','after_dryer_pres'],      label:'After Dryer Pres',  unit:'bar', color:'#fbbf24', group:'pressure' },
+  { key:'Oil_Sep_Outlet_Pres',candidates:['oil seperator outlet pressure','oil separator outlet pressure','oil sep outlet pressure','oil seperator outlet','oil_sep_outlet_pres','oil sep. outlet pressure'], label:'Oil Sep Outlet', unit:'bar', color:'#f59e0b', group:'oil' },
+  { key:'Linkcone_43',       candidates:['linkconer 43','linkcone 43','linkconer43','linkcone43'],         label:'Linkconer 43',      unit:'CFM', color:'#10b981', group:'machine'  },
+  { key:'Ringframe_43',      candidates:['ringframe 43','ringframe43'],                                   label:'Ringframe 43',      unit:'CFM', color:'#059669', group:'machine'  },
+  { key:'Linkconer_44',      candidates:['linkconer 44','linkcone 44','linkconer44'],                      label:'Linkconer 44',      unit:'CFM', color:'#34d399', group:'machine'  },
+  { key:'Linkconer_45',      candidates:['linkconer 45','linkcone 45','linkconer45'],                      label:'Linkconer 45',      unit:'CFM', color:'#6ee7b7', group:'machine'  },
 ];
 
 var CARD_DEFS = [
-  { key:'flow',             label:'Total Flow',           unit:'CFM' },
-  { key:'Power',            label:'Power',                unit:'kW'  },
-  { key:'Savio',            label:'Savio',                unit:'CFM' },
-  { key:'Murata',           label:'Murata',               unit:'CFM' },
-  { key:'Comp_Outlet_Pres', label:'Comp Outlet Pres',     unit:'bar' },
-  { key:'After_Dryer_Pres', label:'After Dryer Pres',     unit:'bar' },
-  { key:'Dew_Point',        label:'Dew Point',            unit:'°C'  },
-  { key:'Oil_Sep_Outlet_Pres',label:'Oil Sep Outlet',     unit:'bar' },
+  { key:'flow',              label:'Total Flow',       unit:'CFM' },
+  { key:'Power',             label:'Power',            unit:'kW'  },
+  { key:'Savio',             label:'Savio',            unit:'CFM' },
+  { key:'Murata',            label:'Murata',           unit:'CFM' },
+  { key:'Comp_Outlet_Pres',  label:'Comp Outlet Pres', unit:'bar' },
+  { key:'After_Dryer_Pres',  label:'After Dryer Pres', unit:'bar' },
+  { key:'Dew_Point',         label:'Dew Point',        unit:'°C'  },
+  { key:'Oil_Sep_Outlet_Pres',label:'Oil Sep Outlet',  unit:'bar' },
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -337,21 +342,34 @@ COL_DEFS.forEach(function(c){ activeParams[c.key] = true; });
 var allData = [], filteredData = [];
 var flowChart, zoneChart, pressChart, dewChart, powerChart, oilChart, machineChart;
 var sortKey = 'Timestamp', sortDir = -1, currentPage = 1;
+var debugLog = [];
 
 // ══════════════════════════════════════════════════════════
-// TIMESTAMP PARSER — handles M/D/YY HH:MM (e.g. 4/6/25 11:24)
+// DEBUG
+// ══════════════════════════════════════════════════════════
+function toggleDebug() {
+  var box = document.getElementById('debugBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+function log(msg) {
+  debugLog.push(msg);
+  document.getElementById('debugPre').textContent = debugLog.slice(-60).join('\n');
+}
+
+// ══════════════════════════════════════════════════════════
+// TIMESTAMP PARSER
 // ══════════════════════════════════════════════════════════
 function parseTS(str) {
   if (!str) return null;
   str = String(str).trim();
   if (!str) return null;
-  // M/D/YY HH:MM  (e.g. 4/6/25 11:24)
+  // M/D/YY HH:MM  or  M/D/YYYY HH:MM
   var m1 = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (m1) {
     var yr = parseInt(m1[3]); if (yr < 100) yr += 2000;
     return new Date(yr, +m1[1]-1, +m1[2], +m1[4], +m1[5], +(m1[6]||0));
   }
-  // DD-MM-YYYY HH:MM
+  // DD-MM-YYYY HH:MM or DD/MM/YYYY HH:MM
   var m2 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (m2) return new Date(+m2[3], +m2[2]-1, +m2[1], +m2[4], +m2[5], +(m2[6]||0));
   // YYYY-MM-DDTHH:MM
@@ -362,70 +380,131 @@ function parseTS(str) {
 }
 
 // ══════════════════════════════════════════════════════════
-// CSV PARSER
+// CSV PARSER — robust quoted-field handling
 // ══════════════════════════════════════════════════════════
 function splitCSVLine(line) {
   var res = [], cur = '', inQ = false;
   for (var i = 0; i < line.length; i++) {
     var c = line[i];
-    if (c === '"') { inQ = !inQ; }
-    else if (c === ',' && !inQ) { res.push(cur); cur = ''; }
-    else { cur += c; }
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { res.push(cur); cur = ''; }
+    else cur += c;
   }
   res.push(cur);
-  return res.map(function(v){ return v.replace(/^"|"$/g,'').trim(); });
+  return res.map(function(v){ return v.trim(); });
+}
+
+function buildColMap(headers) {
+  // headers: array of trimmed strings
+  var lc = headers.map(function(h){ return h.toLowerCase().trim(); });
+  var colMap = {};
+  var unmapped = [];
+
+  log('=== HEADERS FOUND (' + headers.length + ') ===');
+  headers.forEach(function(h, i){ log('  [' + i + '] "' + h + '"'); });
+
+  COL_DEFS.forEach(function(cd){
+    var found = false;
+    for (var ci = 0; ci < cd.candidates.length; ci++) {
+      var cand = cd.candidates[ci].toLowerCase();
+      for (var hi = 0; hi < lc.length; hi++) {
+        if (lc[hi] === cand) {
+          colMap[cd.key] = hi;
+          log('MAPPED: ' + cd.key + ' → col[' + hi + '] "' + headers[hi] + '"');
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) unmapped.push(cd.key);
+  });
+
+  if (unmapped.length) {
+    log('UNMAPPED keys: ' + unmapped.join(', '));
+    // Partial fuzzy: if any candidate word appears in header
+    unmapped.forEach(function(key){
+      var cd = COL_DEFS.filter(function(c){ return c.key === key; })[0];
+      for (var hi = 0; hi < lc.length; hi++) {
+        for (var ci = 0; ci < cd.candidates.length; ci++) {
+          var words = cd.candidates[ci].toLowerCase().split(' ');
+          var match = words.every(function(w){ return lc[hi].indexOf(w) !== -1; });
+          if (match) {
+            colMap[key] = hi;
+            log('FUZZY MAPPED: ' + key + ' → col[' + hi + '] "' + headers[hi] + '"');
+            break;
+          }
+        }
+        if (colMap[key] !== undefined) break;
+      }
+    });
+  }
+  return colMap;
 }
 
 function parseCSV(csv) {
+  debugLog = [];
   var lines = csv.replace(/\r/g,'').split('\n').filter(function(l){ return l.trim(); });
-  if (lines.length < 2) return [];
+  log('Total CSV lines: ' + lines.length);
+  if (lines.length < 2) { log('ERROR: Not enough lines'); return []; }
 
   var headers = splitCSVLine(lines[0]);
+  log('Raw header line: ' + lines[0].substring(0, 200));
 
-  // Build column index map — exact + fuzzy lowercase match
-  var colIdx = {};
-  headers.forEach(function(h, i){ colIdx[h.trim()] = i; });
+  // Find Timestamp column (col A = index 0)
+  var tsIdx = 0;
+  var lch = headers.map(function(h){ return h.toLowerCase(); });
+  for (var i = 0; i < lch.length; i++) {
+    if (lch[i] === 'timestamp' || lch[i] === 'date' || lch[i] === 'time') { tsIdx = i; break; }
+  }
+  log('Timestamp col idx: ' + tsIdx);
 
-  var tsIdx = colIdx['Timestamp'];
-  if (tsIdx === undefined) {
-    // Try to find first column with timestamp-like data
-    tsIdx = 0;
+  var colMap = buildColMap(headers);
+
+  // Sample first data row
+  if (lines.length > 1) {
+    var sample = splitCSVLine(lines[1]);
+    log('Sample row[1]: ' + sample.slice(0,6).join(' | '));
   }
 
-  // Map COL_DEFS keys to column indices
-  var colMap = {};
-  COL_DEFS.forEach(function(cd){
-    var idx = colIdx[cd.col];
-    if (idx !== undefined) { colMap[cd.key] = idx; return; }
-    // Fuzzy: try trimmed lowercase
-    headers.forEach(function(h, i){
-      if (h.trim().toLowerCase() === cd.col.toLowerCase()) colMap[cd.key] = i;
-    });
-  });
-
   var rows = [];
+  var skipped = 0;
   for (var i = 1; i < lines.length; i++) {
     var cells = splitCSVLine(lines[i]);
-    var tsStr = cells[tsIdx] || '';
-    if (!tsStr.trim()) continue;
+    var tsStr = (cells[tsIdx] || '').replace(/^"|"$/g,'').trim();
+    if (!tsStr) { skipped++; continue; }
     var ts = parseTS(tsStr);
-    if (!ts || isNaN(ts)) continue;
+    if (!ts || isNaN(ts)) { skipped++; continue; }
 
     var obj = { _ts: ts };
     COL_DEFS.forEach(function(cd){
       var idx = colMap[cd.key];
-      if (idx === undefined) { obj[cd.key] = null; return; }
-      var raw = cells[idx] !== undefined ? cells[idx] : '';
+      if (idx === undefined || idx >= cells.length) { obj[cd.key] = null; return; }
+      var raw = cells[idx].replace(/^"|"$/g,'').trim();
       var n = parseFloat(raw);
       obj[cd.key] = isNaN(n) ? null : n;
     });
     rows.push(obj);
   }
+  log('Parsed rows: ' + rows.length + ', skipped: ' + skipped);
+  if (rows.length > 0) {
+    log('Sample parsed obj: ' + JSON.stringify({
+      ts: fmtTS(rows[0]._ts),
+      flow: rows[0].flow,
+      Power: rows[0].Power,
+      Savio: rows[0].Savio,
+      Dew_Point: rows[0].Dew_Point,
+      Comp_Outlet_Pres: rows[0].Comp_Outlet_Pres
+    }));
+  }
+  document.getElementById('debugPre').textContent = debugLog.join('\n');
   return rows;
 }
 
 // ══════════════════════════════════════════════════════════
-// FETCH — gviz CSV (CORS-safe) with direct export fallback
+// FETCH — tries gviz CSV then direct export
 // ══════════════════════════════════════════════════════════
 function doFetch() {
   document.getElementById('sync').textContent = '● Fetching...';
@@ -434,44 +513,36 @@ function doFetch() {
   document.getElementById('statsRow').style.display = 'none';
   document.getElementById('table').innerHTML =
     '<div class="loading">⏳ Loading from Google Sheets…' +
-    '<div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>' +
-    '</div>';
+    '<div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div></div>';
 
+  var fill = function(pct){ var el=document.getElementById('progFill'); if(el) el.style.width=pct+'%'; };
+  fill(15);
+
+  // Primary: gviz CSV (preserves actual header names perfectly)
   var gvizUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-    '/gviz/tq?tqx=out:csv&gid=' + SHEET.gid +
-    '&tq=' + encodeURIComponent('select *') +
-    '&_=' + Date.now();
+    '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&_=' + Date.now();
 
-  var fill = function(pct){ var el = document.getElementById('progFill'); if(el) el.style.width = pct + '%'; };
-  fill(20);
+  var tryFallback = function() {
+    fill(50);
+    var fallback = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+      '/export?format=csv&gid=' + SHEET_GID + '&_=' + Date.now();
+    return fetch(fallback, { cache:'no-store' })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+      .then(function(csv){
+        if (!csv || csv.trim().charAt(0) === '<') throw new Error('PERMISSION_DENIED — sheet not public');
+        return csv;
+      });
+  };
 
   fetch(gvizUrl, { mode:'cors', cache:'no-store' })
-    .then(function(r){
-      fill(60);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
+    .then(function(r){ fill(40); if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
     .then(function(csv){
       if (!csv || csv.trim().charAt(0) === '<') throw new Error('PERMISSION_DENIED');
-      fill(80);
       return csv;
     })
-    .catch(function(){
-      // Fallback: direct export URL
-      var fallback = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-        '/export?format=csv&gid=' + SHEET.gid + '&_=' + Date.now();
-      return fetch(fallback, { cache:'no-store' })
-        .then(function(r2){
-          if (!r2.ok) throw new Error('HTTP ' + r2.status);
-          return r2.text();
-        })
-        .then(function(csv2){
-          if (!csv2 || csv2.trim().charAt(0) === '<') throw new Error('PERMISSION_DENIED');
-          return csv2;
-        });
-    })
+    .catch(function(){ return tryFallback(); })
     .then(function(csv){
-      fill(95);
+      fill(80);
       allData = parseCSV(csv).sort(function(a,b){ return (a._ts||0)-(b._ts||0); });
       fill(100);
 
@@ -480,8 +551,8 @@ function doFetch() {
         document.getElementById('sync').textContent = '● No data';
         document.getElementById('sync').style.color = '#ef4444';
         document.getElementById('table').innerHTML =
-          '<div class="err-box">❌ No data loaded. Make sure your Google Sheet is shared as <strong>"Anyone with the link → Viewer"</strong>.<br><br>' +
-          'Sheet ID: <code>' + SHEET_ID + '</code> · GID: <code>' + SHEET.gid + '</code></div>';
+          '<div class="err-box">❌ No data parsed. Click 🔍 Debug to inspect the column mapping.<br><br>' +
+          'Make sure the sheet is shared as <strong>"Anyone with the link → Viewer"</strong>.</div>';
         return;
       }
 
@@ -498,13 +569,13 @@ function doFetch() {
       document.getElementById('sync').style.color = '#ef4444';
       document.getElementById('table').innerHTML =
         '<div class="err-box">❌ <strong>' + err.message + '</strong><br><br>' +
-        '👉 Share your Google Sheet as <strong>"Anyone with the link → Viewer"</strong> and retry.<br><br>' +
-        'Sheet ID: <code>' + SHEET_ID + '</code> · GID: <code>' + SHEET.gid + '</code></div>';
+        '👉 Share your Google Sheet as <strong>"Anyone with the link → Viewer"</strong> then click Retry.<br><br>' +
+        'Sheet ID: <code>' + SHEET_ID + '</code> · GID: <code>' + SHEET_GID + '</code></div>';
     });
 }
 
 // ══════════════════════════════════════════════════════════
-// PARAM BUTTONS — grouped
+// PARAM BUTTONS
 // ══════════════════════════════════════════════════════════
 function buildParamButtons() {
   var div = document.getElementById('params');
@@ -578,7 +649,7 @@ function updateCards(data) {
     var av = document.getElementById('cv_' + d.key);
     var rg = document.getElementById('cr_' + d.key);
     if (!av) return;
-    if (!vals.length) { av.textContent = '—'; if (rg) rg.textContent = ''; return; }
+    if (!vals.length) { av.textContent = '—'; if (rg) rg.textContent = 'No data'; return; }
     var avg = vals.reduce(function(a,b){return a+b;},0) / vals.length;
     av.textContent = avg.toFixed(2) + ' ' + d.unit;
     if (rg) rg.textContent = 'Min ' + Math.min.apply(null,vals).toFixed(2) + ' · Max ' + Math.max.apply(null,vals).toFixed(2);
@@ -705,9 +776,10 @@ function aggregate(data) {
 var chartBaseOpts = {
   responsive: true, maintainAspectRatio: true, animation: false,
   interaction: { mode:'index', intersect:false },
-  plugins: { legend: { labels: { color:'#555', font:{size:10}, usePointStyle:true, pointStyleWidth:8, padding:10 } },
-    tooltip: { backgroundColor:'#fff', borderColor:'#e8eaf0', borderWidth:1,
-               titleColor:'#1a1a2e', bodyColor:'#555', padding:9 } },
+  plugins: {
+    legend: { labels: { color:'#555', font:{size:10}, usePointStyle:true, pointStyleWidth:8, padding:10 } },
+    tooltip: { backgroundColor:'#fff', borderColor:'#e8eaf0', borderWidth:1, titleColor:'#1a1a2e', bodyColor:'#555', padding:9 }
+  },
   scales: {
     x: { ticks:{color:'#999',maxTicksLimit:12,font:{size:9}}, grid:{color:'#f0f2f8'} },
     y: { ticks:{color:'#999',font:{size:9}},                  grid:{color:'#f0f2f8'} }
@@ -731,8 +803,15 @@ function mkDS(key, color, data, yAxis, fill) {
 
 function mkOpts(yLabel, y2Label) {
   var opts = JSON.parse(JSON.stringify(chartBaseOpts));
-  if (yLabel)  opts.scales.y  = { type:'linear', position:'left',  title:{display:true,text:yLabel, color:'#aaa',font:{size:9}},  ticks:{color:'#999',font:{size:9}}, grid:{color:'#f0f2f8'} };
-  if (y2Label) opts.scales.y1 = { type:'linear', position:'right', title:{display:true,text:y2Label,color:'#aaa',font:{size:9}}, ticks:{color:'#999',font:{size:9}}, grid:{drawOnChartArea:false} };
+  opts.scales.x = { ticks:{color:'#999',maxTicksLimit:12,font:{size:9}}, grid:{color:'#f0f2f8'} };
+  opts.scales.y = { type:'linear', position:'left',
+    title:{display:!!yLabel,text:yLabel||'',color:'#aaa',font:{size:9}},
+    ticks:{color:'#999',font:{size:9}}, grid:{color:'#f0f2f8'} };
+  if (y2Label) {
+    opts.scales.y1 = { type:'linear', position:'right',
+      title:{display:true,text:y2Label,color:'#aaa',font:{size:9}},
+      ticks:{color:'#999',font:{size:9}}, grid:{drawOnChartArea:false} };
+  }
   return opts;
 }
 
@@ -740,7 +819,7 @@ function getLabels(data) {
   var agg = document.getElementById('agg').value;
   return data.map(function(r){
     var ts = r._ts instanceof Date ? r._ts : (r._label ? new Date(r._label) : null);
-    if (r._label && isNaN(ts)) return r._label;
+    if (r._label && (!ts || isNaN(ts))) return r._label;
     return fmtLabel(ts && !isNaN(ts) ? ts : null, agg);
   });
 }
@@ -749,67 +828,57 @@ function destroyChart(c){ if(c){try{c.destroy();}catch(e){}} return null; }
 
 function renderAllCharts(data) {
   var labels = getLabels(data);
+  var isBar  = document.getElementById('chartType').value === 'bar';
+  var ctype  = isBar ? 'bar' : 'line';
 
-  // Flow Chart: Total, Savio, Murata
+  // Flow Chart
   flowChart = destroyChart(flowChart);
   var fds = [];
   if (activeParams.flow)   fds.push(mkDS('flow',   '#0ea5e9', data, 'y',  true));
   if (activeParams.Savio)  fds.push(mkDS('Savio',  '#3b82f6', data, 'y',  false));
   if (activeParams.Murata) fds.push(mkDS('Murata', '#6366f1', data, 'y1', false));
-  flowChart = new Chart(document.getElementById('flowChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:fds },
-      options: mkOpts('CFM (Total/Savio)', 'CFM (Murata)') });
+  if (fds.length) flowChart = new Chart(document.getElementById('flowChart'),
+    { type:ctype, data:{ labels:labels, datasets:fds }, options:mkOpts('CFM (Total/Savio)','CFM (Murata)') });
 
-  // Zone Chart: Spg Hall A/B, Prep Hall 1/2
+  // Zone Chart
   zoneChart = destroyChart(zoneChart);
   var zds = [];
   if (activeParams.Spg_Hall_A)  zds.push(mkDS('Spg_Hall_A',  '#8b5cf6', data, 'y',  true));
   if (activeParams.Spg_Hall_B)  zds.push(mkDS('Spg_Hall_B',  '#a855f7', data, 'y',  false));
   if (activeParams.Prep_Hall_1) zds.push(mkDS('Prep_Hall_1', '#c084fc', data, 'y1', false));
   if (activeParams.Prep_Hall_2) zds.push(mkDS('Prep_Hall_2', '#d8b4fe', data, 'y1', false));
-  zoneChart = new Chart(document.getElementById('zoneChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:zds },
-      options: mkOpts('CFM (Spg Halls)', 'CFM (Prep Halls)') });
+  if (zds.length) zoneChart = new Chart(document.getElementById('zoneChart'),
+    { type:ctype, data:{ labels:labels, datasets:zds }, options:mkOpts('CFM (Spg Halls)','CFM (Prep Halls)') });
 
-  // Pressure Chart: Comp Outlet, Before Dryer, After Dryer
+  // Pressure Chart
   pressChart = destroyChart(pressChart);
   var pds = [];
   if (activeParams.Comp_Outlet_Pres)  pds.push(mkDS('Comp_Outlet_Pres',  '#f97316', data, 'y',  true));
   if (activeParams.Before_Dryer_Pres) pds.push(mkDS('Before_Dryer_Pres', '#fb923c', data, 'y',  false));
   if (activeParams.After_Dryer_Pres)  pds.push(mkDS('After_Dryer_Pres',  '#fbbf24', data, 'y1', false));
-  pressChart = new Chart(document.getElementById('pressChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:pds },
-      options: mkOpts('Pressure (bar) Inlet', 'Pressure (bar) Dryer') });
+  if (pds.length) pressChart = new Chart(document.getElementById('pressChart'),
+    { type:ctype, data:{ labels:labels, datasets:pds }, options:mkOpts('Pressure (bar) Inlet','Pressure (bar) Dryer') });
 
   // Dew Point Chart
   dewChart = destroyChart(dewChart);
   var dds = [];
   if (activeParams.Dew_Point) dds.push(mkDS('Dew_Point', '#22d3ee', data, 'y', true));
-  dewChart = new Chart(document.getElementById('dewChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:dds },
-      options: mkOpts('Dew Point (°C)') });
+  if (dds.length) dewChart = new Chart(document.getElementById('dewChart'),
+    { type:ctype, data:{ labels:labels, datasets:dds }, options:mkOpts('Dew Point (°C)') });
 
   // Power Chart
   powerChart = destroyChart(powerChart);
   var pwd = [];
   if (activeParams.Power) pwd.push(mkDS('Power', '#ef4444', data, 'y', true));
-  powerChart = new Chart(document.getElementById('powerChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:pwd },
-      options: mkOpts('Power (kW)') });
+  if (pwd.length) powerChart = new Chart(document.getElementById('powerChart'),
+    { type:ctype, data:{ labels:labels, datasets:pwd }, options:mkOpts('Power (kW)') });
 
   // Oil Separator Chart
   oilChart = destroyChart(oilChart);
   var ods = [];
   if (activeParams.Oil_Sep_Outlet_Pres) ods.push(mkDS('Oil_Sep_Outlet_Pres', '#f59e0b', data, 'y', true));
-  oilChart = new Chart(document.getElementById('oilChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:ods },
-      options: mkOpts('Pressure (bar)') });
+  if (ods.length) oilChart = new Chart(document.getElementById('oilChart'),
+    { type:ctype, data:{ labels:labels, datasets:ods }, options:mkOpts('Pressure (bar)') });
 
   // Machine Zones Chart
   machineChart = destroyChart(machineChart);
@@ -818,14 +887,12 @@ function renderAllCharts(data) {
   if (activeParams.Ringframe_43) mds.push(mkDS('Ringframe_43', '#059669', data, 'y',  false));
   if (activeParams.Linkconer_44) mds.push(mkDS('Linkconer_44', '#34d399', data, 'y1', false));
   if (activeParams.Linkconer_45) mds.push(mkDS('Linkconer_45', '#6ee7b7', data, 'y1', false));
-  machineChart = new Chart(document.getElementById('machineChart'),
-    { type: document.getElementById('chartType').value==='bar'?'bar':'line',
-      data: { labels:labels, datasets:mds },
-      options: mkOpts('CFM (Linkcone/Ringframe 43)', 'CFM (Linkconer 44/45)') });
+  if (mds.length) machineChart = new Chart(document.getElementById('machineChart'),
+    { type:ctype, data:{ labels:labels, datasets:mds }, options:mkOpts('CFM (Linkcone/Ringframe 43)','CFM (Linkconer 44/45)') });
 }
 
 // ══════════════════════════════════════════════════════════
-// TABLE with SORT + PAGINATION
+// TABLE
 // ══════════════════════════════════════════════════════════
 function renderTable(data) {
   var pageSize   = parseInt(document.getElementById('pageSize').value);
@@ -857,9 +924,10 @@ function renderTable(data) {
     return;
   }
 
-  var allCols = ['Timestamp'].concat(COL_DEFS.map(function(c){ return c.key; }));
-  var allHdrs = ['Timestamp'].concat(COL_DEFS.map(function(c){ return c.label + '<br><small style="color:#999;font-weight:400">'+c.unit+'</small>'; }));
   var allKeys = ['Timestamp'].concat(COL_DEFS.map(function(c){ return c.key; }));
+  var allHdrs = ['Timestamp'].concat(COL_DEFS.map(function(c){
+    return c.label + '<br><small style="color:#999;font-weight:400">' + c.unit + '</small>';
+  }));
 
   var html = '<table><thead><tr>';
   allHdrs.forEach(function(h, i){
@@ -870,8 +938,7 @@ function renderTable(data) {
   html += '</tr></thead><tbody>';
 
   pageData.forEach(function(row){
-    html += '<tr>';
-    html += '<td>' + fmtTS(row._ts) + '</td>';
+    html += '<tr><td>' + fmtTS(row._ts) + '</td>';
     COL_DEFS.forEach(function(cd){
       var v = num(row[cd.key]);
       html += '<td>' + (v !== null ? v.toFixed(3) : '—') + '</td>';
@@ -889,7 +956,7 @@ function renderPagination(totalPages, total) {
   html += '<button class="pg-btn" onclick="changePage(1)" '+(currentPage===1?'disabled':'')+'>«</button>';
   html += '<button class="pg-btn" onclick="changePage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>‹</button>';
   var s = Math.max(1,currentPage-2), e = Math.min(totalPages,currentPage+2);
-  if (s > 1)  html += '<button class="pg-btn" onclick="changePage(1)">1</button>'+(s>2?'<span style="color:#ccc;padding:0 3px">…</span>':'');
+  if (s > 1) html += '<button class="pg-btn" onclick="changePage(1)">1</button>'+(s>2?'<span style="color:#ccc;padding:0 3px">…</span>':'');
   for (var p=s;p<=e;p++) html += '<button class="pg-btn'+(p===currentPage?' active':'')+'" onclick="changePage('+p+')">'+p+'</button>';
   if (e < totalPages) html += (e<totalPages-1?'<span style="color:#ccc;padding:0 3px">…</span>':'')+
     '<button class="pg-btn" onclick="changePage('+totalPages+')">'+totalPages+'</button>';
