@@ -319,8 +319,8 @@ var COL_DEFS = [
   { key:'Oil_Sep_Outlet_Pres',candidates:['oil seperator outlet pressure','oil separator outlet pressure','oil sep outlet pressure','oil seperator outlet','oil_sep_outlet_pres','oil sep. outlet pressure'], label:'Oil Sep Outlet', unit:'bar', color:'#f59e0b', group:'oil' },
   { key:'Linkcone_43',       candidates:['linkconer 43','linkcone 43','linkconer43','linkcone43'],         label:'Linkconer 43',      unit:'CFM', color:'#10b981', group:'machine'  },
   { key:'Ringframe_43',      candidates:['ringframe 43','ringframe43'],                                   label:'Ringframe 43',      unit:'CFM', color:'#059669', group:'machine'  },
-  { key:'Linkconer_44',      candidates:['linkconer 44','linkcone 44','linkconer44'],                      label:'Linkconer 44',      unit:'CFM', color:'#34d399', group:'machine'  },
-  { key:'Linkconer_45',      candidates:['linkconer 45','linkcone 45','linkconer45'],                      label:'Linkconer 45',      unit:'CFM', color:'#6ee7b7', group:'machine'  },
+  { key:'Linkconer_44',      candidates:['linckoner 44','linkconer 44','linkcone 44','linckoner44','linkconer44'],  label:'Linckoner 44',      unit:'CFM', color:'#34d399', group:'machine'  },
+  { key:'Linkconer_45',      candidates:['linckoner 45','linkconer 45','linkcone 45','linckoner45','linkconer45'],  label:'Linckoner 45',      unit:'CFM', color:'#6ee7b7', group:'machine'  },
 ];
 
 var CARD_DEFS = [
@@ -649,7 +649,7 @@ function updateCards(data) {
     var av = document.getElementById('cv_' + d.key);
     var rg = document.getElementById('cr_' + d.key);
     if (!av) return;
-    if (!vals.length) { av.textContent = '—'; if (rg) rg.textContent = 'No data'; return; }
+    if (!vals.length) { av.textContent = '—'; if (rg) rg.textContent = 'No data in range'; return; }
     var avg = vals.reduce(function(a,b){return a+b;},0) / vals.length;
     av.textContent = avg.toFixed(2) + ' ' + d.unit;
     if (rg) rg.textContent = 'Min ' + Math.min.apply(null,vals).toFixed(2) + ' · Max ' + Math.max.apply(null,vals).toFixed(2);
