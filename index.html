@@ -162,7 +162,7 @@ tr:hover td{background:var(--surface2)}
       </select>
     </div>
     <div class="fg" style="display:flex;gap:8px;align-items:flex-end">
-      <button class="btn btn-accent" onclick="applyFilters()">▶ Apply</button>
+      <button class="btn btn-accent" onclick="doFetch()">▶ Apply</button>
       <button class="btn" onclick="doReset()">↺ Reset</button>
     </div>
   </div>
@@ -245,6 +245,28 @@ tr:hover td{background:var(--surface2)}
 'use strict';
 
 var SHEET_ID  = '1fhxWeL6xOfgl7DtMWG0-XEEtOwfYQfdMTZMJhPkzoW0';
+
+// WASM604 PART B: data now comes from the WiseAir archive API (TimescaleDB).
+var API_BASE = 'https://168-144-76-214.sslip.io';
+var DEVICE_MAP = {
+  flow:                null, /* 'Total Flow' source device unconfirmed - see OPEN_QUESTIONS */
+  Power:               {device:'SJJ U2-Power',                     key:'power'},
+  Savio:               {device:'U2 - Savio Flow',                  key:'flow'},
+  Murata:              {device:'U2 - Murata Flow',                 key:'flow'},
+  Spg_Hall_A:          {device:'U2 - Spg Hall A Flow',             key:'flow'},
+  Spg_Hall_B:          {device:'U2- Spg Hall B Flow',              key:'flow'},
+  Prep_Hall_1:         {device:'U2-Preparatory Hall 1',            key:'flow'},
+  Prep_Hall_2:         {device:'U2-Preparatory Hall 2',            key:'flow'},
+  Dew_Point:           {device:'U2-Dew Point',                     key:'dewpoint'},
+  Comp_Outlet_Pres:    {device:'U2-Compressor Output Pressure',    key:'pressure'},
+  Before_Dryer_Pres:   {device:'U2-Before Dryer Pressure',         key:'pressure'},
+  After_Dryer_Pres:    {device:'U2-After Dryer Pressure',          key:'pressure'},
+  Oil_Sep_Outlet_Pres: {device:'U2-Oil Separator Outlet Pressure', key:'pressure'},
+  Linkcone_43:         {device:'LinkConer 43',                     key:'flow'},
+  Ringframe_43:        {device:'RingFrame 43',                     key:'flow'},
+  Linkconer_44:        {device:'LinkConer 44',                     key:'flow'},
+  Linkconer_45:        {device:'LinkConer 45',                     key:'flow'}
+};
 var SHEET_GID = '1890584741';
 
 // FIXED column indices (confirmed from debug output — DO NOT change unless sheet structure changes)
@@ -437,66 +459,52 @@ function doFetch() {
   document.getElementById('errBanner').style.display = 'none';
   document.getElementById('statsRow').style.display = 'none';
   document.getElementById('tableDiv').innerHTML =
-    '<div class="loading-overlay"><div class="spinner"></div><br>Loading from Google Sheets…</div>';
+    '<div class="loading-overlay"><div class="spinner"></div><br>Loading from WiseAir archive\u2026</div>';
 
-  var ts = Date.now();
-  var gviz = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&gid='+SHEET_GID+'&_='+ts;
-  var expo = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/export?format=csv&gid='+SHEET_GID+'&_='+ts;
+  var fromV=document.getElementById('from').value;
+  var toV=document.getElementById('to').value;
+  var toMs = toV ? new Date(toV+'T23:59:59').getTime() : Date.now();
+  var fromMs = fromV ? new Date(fromV).getTime() : (toMs - 7*86400000);
 
-  function isCSV(t) { return t && t.trim().length > 0 && t.trim().charAt(0) !== '<' && t.trim().charAt(0) !== '{'; }
-  function tryURL(url) {
-    return fetch(url, {cache:'no-store'})
-      .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      .then(function(t) { if (!isCSV(t)) throw new Error('Not CSV (got: '+t.substring(0,60)+')'); return t; });
-  }
+  var defs = COL_DEFS.filter(function(cd){ return DEVICE_MAP[cd.key]; });
 
-  tryURL(gviz)
-    .catch(function(e1) { log('gviz failed: '+e1.message); return tryURL(expo); })
-    .then(function(csv) {
-      setStatus('parsing '+Math.round(csv.length/1024)+'KB...', '');
-      // Defer to next tick so browser can update UI
-      setTimeout(function() {
-        try {
-          var rows = parseCSV(csv);
-
-          // Sort by timestamp (iterative, no recursion risk with small N after agg)
-          rows.sort(function(a, b) {
-            return (a._ts ? a._ts.getTime() : 0) - (b._ts ? b._ts.getTime() : 0);
-          });
-          allData = rows;
-
-          if (!allData.length) {
-            setStatus('no data', 'err');
-            document.getElementById('errBanner').style.display = 'block';
-            document.getElementById('tableDiv').innerHTML =
-              '<div style="text-align:center;padding:40px;color:var(--err)">No rows parsed. Open Debug panel for details.</div>';
-            return;
-          }
-
-          setStatus('● '+allData.length.toLocaleString()+' rows', 'ok');
-          document.getElementById('statTotal').textContent = allData.length.toLocaleString();
-          document.getElementById('statUpdated').textContent = new Date().toLocaleTimeString();
-          document.getElementById('statsRow').style.display = 'flex';
-          buildToggleButtons();
-          buildKPICards();
-          applyFilters();
-        } catch(parseErr) {
-          setStatus('parse error', 'err');
-          document.getElementById('tableDiv').innerHTML =
-            '<div style="text-align:center;padding:40px;color:var(--err)">Parse error: '+parseErr.message+'</div>';
-          log('PARSE EXCEPTION: '+parseErr.message);
-          flushLog();
-        }
-      }, 50);
-    })
-    .catch(function(err) {
-      setStatus('error', 'err');
-      document.getElementById('errBanner').style.display = 'block';
-      document.getElementById('tableDiv').innerHTML =
-        '<div style="text-align:center;padding:40px;color:var(--err)">'+err.message+'</div>';
-      log('FETCH ERROR: '+err.message);
-      flushLog();
+  Promise.all(defs.map(function(cd){
+    var m = DEVICE_MAP[cd.key];
+    var url = API_BASE+'/history?device='+encodeURIComponent(m.device)+
+              '&keys='+encodeURIComponent(m.key)+'&from='+fromMs+'&to='+toMs+'&bucket=auto';
+    return fetch(url,{cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(j){ return {cd:cd, data:j.data||[]}; })
+      .catch(function(e){ log('fetch fail '+cd.key+': '+e.message); return {cd:cd, data:[]}; });
+  })).then(function(results){
+    var byTs={};
+    results.forEach(function(res){
+      res.data.forEach(function(p){
+        var t=Math.round(p.ts/60000)*60000;
+        var row=byTs[t];
+        if(!row){ row=byTs[t]={_ts:new Date(t)};
+          COL_DEFS.forEach(function(c){ row[c.key]=null; }); }
+        if(p.value!==null && p.value!==undefined) row[res.cd.key]=p.value;
+      });
     });
+    var rows=Object.keys(byTs).map(function(k){ return byTs[k]; });
+    rows.sort(function(a,b){ return a._ts-b._ts; });
+    allData = rows;
+
+    if (!allData.length) {
+      setStatus('no data in range', 'err');
+      document.getElementById('tableDiv').innerHTML =
+        '<div style="text-align:center;padding:40px;color:var(--err)">No data for the selected date range.</div>';
+      return;
+    }
+    setStatus('\u25CF '+allData.length.toLocaleString()+' rows \u00B7 WiseAir archive', 'ok');
+    document.getElementById('statTotal').textContent = allData.length.toLocaleString();
+    document.getElementById('statUpdated').textContent = new Date().toLocaleTimeString();
+    document.getElementById('statsRow').style.display = 'flex';
+    buildToggleButtons();
+    buildKPICards();
+    applyFilters();
+  });
 }
 
 // ─── KPI CARDS ───────────────────────────────────────────
@@ -649,14 +657,14 @@ function applyQuickRange() {
   if (!v || v === 'all') {
     document.getElementById('from').value = '';
     document.getElementById('to').value = '';
-    if (allData.length) applyFilters();
+    doFetch();
     return;
   }
   var toD = new Date(), fromD = new Date();
   fromD.setDate(fromD.getDate() - parseInt(v, 10));
   document.getElementById('to').value   = toD.toISOString().split('T')[0];
   document.getElementById('from').value = fromD.toISOString().split('T')[0];
-  if (allData.length) applyFilters();
+  doFetch();
 }
 
 function doReset() {
@@ -960,6 +968,11 @@ function doExport() {
 }
 
 // ─── START ────────────────────────────────────────────────
+(function(){
+  var to=new Date(), fr=new Date(); fr.setDate(fr.getDate()-7);
+  document.getElementById('to').value=to.toISOString().split('T')[0];
+  document.getElementById('from').value=fr.toISOString().split('T')[0];
+})();
 doFetch();
 </script>
 </body>
