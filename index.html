@@ -454,7 +454,8 @@ function setStatus(txt, state) {
   dot.className = 'status-dot' + (state ? ' '+state : '');
 }
 
-function doFetch() {
+var _fetchGen=0;
+function doFetch() { var _gen=++_fetchGen;
   setStatus('fetching...', '');
   document.getElementById('errBanner').style.display = 'none';
   document.getElementById('statsRow').style.display = 'none';
@@ -476,7 +477,7 @@ function doFetch() {
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(j){ return {cd:cd, data:j.data||[]}; })
       .catch(function(e){ log('fetch fail '+cd.key+': '+e.message); return {cd:cd, data:[]}; });
-  })).then(function(results){
+  })).then(function(results){ if(_gen!==_fetchGen) return;
     var byTs={};
     results.forEach(function(res){
       res.data.forEach(function(p){
